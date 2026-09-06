@@ -79,20 +79,15 @@ export interface components {
             population: string;
             responder: components["schemas"]["BoxplotStats"];
             non_responder: components["schemas"]["BoxplotStats"];
-        };
-        /** PopulationMedianFrequencies */
-        PopulationMedianFrequencies: {
-            /** Population */
-            population: string;
-            /** Responder Median */
-            responder_median: number;
-            /** Non Responder Median */
-            non_responder_median: number;
+            /** Statistic */
+            statistic: number;
+            /** Significant */
+            significant: boolean;
         };
         /** ResponseFrequencyAnalysis */
         ResponseFrequencyAnalysis: {
-            /** Medians */
-            medians: components["schemas"]["PopulationMedianFrequencies"][];
+            /** Methodology */
+            methodology: string;
             /** Boxplots */
             boxplots: components["schemas"]["PopulationBoxplot"][];
         };
@@ -144,7 +139,6 @@ export interface operations {
                 condition: string;
                 treatment: string;
                 sample_type: string;
-                median_threshold: number;
             };
             header?: never;
             path?: never;

@@ -13,13 +13,8 @@ def read_response_frequency_analysis(
     condition: str,
     treatment: str,
     sample_type: str,
-    median_threshold: float,
     conn: Connection = Depends(get_connection),
 ) -> ResponseFrequencyAnalysis:
     return get_response_frequency_analysis(
-        conn,
-        condition=condition,
-        treatment=treatment,
-        sample_type=sample_type,
-        median_threshold=median_threshold,
+        conn, condition=condition, treatment=treatment, sample_type=sample_type
     )

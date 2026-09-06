@@ -36,18 +36,30 @@ export default function ResponseBoxplot({ boxplot }: Props) {
   ]
 
   return (
-    <Plot
-      data={data}
-      layout={{
-        title: { text: boxplot.population },
-        yaxis: { title: { text: 'Frequency (%)' } },
-        showlegend: false,
-        height: 320,
-        margin: { t: 40, b: 40, l: 50, r: 20 },
-      }}
-      config={{ displayModeBar: false, responsive: true }}
-      style={{ width: '100%' }}
-      useResizeHandler
-    />
+    <div
+      className={`card h-100 border-start border-4 ${boxplot.significant ? 'border-success' : 'border-secondary-subtle'}`}
+    >
+      <div className="card-body pb-2">
+        <Plot
+          data={data}
+          layout={{
+            title: { text: boxplot.population },
+            yaxis: { title: { text: 'Frequency (%)' } },
+            showlegend: false,
+            height: 300,
+            margin: { t: 40, b: 40, l: 50, r: 20 },
+          }}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%' }}
+          useResizeHandler
+        />
+        <div className="d-flex justify-content-between align-items-center small text-muted mt-1">
+          <span>Statistic: {boxplot.statistic.toFixed(4)}</span>
+          <span className={`badge ${boxplot.significant ? 'text-bg-success' : 'text-bg-secondary'}`}>
+            {boxplot.significant ? 'Significant' : 'Not significant'}
+          </span>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,25 +1,31 @@
-"""Shapes response-frequency crunching output into the API response.
-
-Pulls the raw per-sample frequency data once and derives both parts of the
-response from it (medians for every comparable population, boxplot stats for
-only the ones whose median difference clears the threshold) rather than
-querying twice.
-"""
+"""Shapes response-significance crunching output into the API response."""
 
 from sqlalchemy import Connection
 
-from backend.crunching.response_frequencies import (
-    get_response_frequencies,
-    get_response_median_frequencies,
-    get_significant_response_populations,
-)
-from backend.crunching.response_frequency_stats import compute_boxplot_stats
+from backend.crunching.mann_whitney_significance import MANN_WHITNEY_U
+from backend.crunching.response_frequency_stats import FrequencyBoxplotStats
+from backend.crunching.response_significance import get_response_significance_analysis
 from backend.schemas.response_frequency_analysis import (
     BoxplotStats,
     PopulationBoxplot,
-    PopulationMedianFrequencies,
     ResponseFrequencyAnalysis,
 )
+
+# The active significance method. Swapping which test is used is a one-line
+# change here -- both the API response's `methodology` text and the
+# frontend read the method's own `description` rather than hardcoding which
+# test is active, so nothing downstream needs to change to swap it.
+SIGNIFICANCE_METHOD = MANN_WHITNEY_U
+
+
+def _to_schema(stats: FrequencyBoxplotStats) -> BoxplotStats:
+    return BoxplotStats(
+        minimum=stats.minimum,
+        q1=stats.q1,
+        median=stats.median,
+        q3=stats.q3,
+        maximum=stats.maximum,
+    )
 
 
 def get_response_frequency_analysis(
@@ -28,48 +34,24 @@ def get_response_frequency_analysis(
     condition: str,
     treatment: str,
     sample_type: str,
-    median_threshold: float,
 ) -> ResponseFrequencyAnalysis:
-    frequencies = get_response_frequencies(
-        conn, condition=condition, treatment=treatment, sample_type=sample_type
+    analyses = get_response_significance_analysis(
+        conn,
+        condition=condition,
+        treatment=treatment,
+        sample_type=sample_type,
+        method=SIGNIFICANCE_METHOD,
     )
-    median_frequencies = get_response_median_frequencies(frequencies)
-    significant_populations = get_significant_response_populations(
-        median_frequencies, median_threshold
-    )
-    boxplot_stats = compute_boxplot_stats(frequencies, significant_populations)
-
-    medians = [
-        PopulationMedianFrequencies(
-            population=population,
-            responder_median=by_response["yes"],
-            non_responder_median=by_response["no"],
-        )
-        for population, by_response in median_frequencies.items()
-        if "yes" in by_response and "no" in by_response
-    ]
-
-    # Pair up the flat (population, response) boxplot rows into one
-    # two-sided structure per population. Every population reaching this
-    # point has both response groups present (guaranteed by
-    # get_significant_response_populations), so both lookups always succeed.
-    stats_by_population: dict[str, dict[str, BoxplotStats]] = {}
-    for stat in boxplot_stats:
-        stats_by_population.setdefault(stat.population, {})[stat.response] = BoxplotStats(
-            minimum=stat.minimum,
-            q1=stat.q1,
-            median=stat.median,
-            q3=stat.q3,
-            maximum=stat.maximum,
-        )
 
     boxplots = [
         PopulationBoxplot(
-            population=population,
-            responder=by_response["yes"],
-            non_responder=by_response["no"],
+            population=analysis.population,
+            responder=_to_schema(analysis.responder),
+            non_responder=_to_schema(analysis.non_responder),
+            statistic=analysis.statistic,
+            significant=analysis.significant,
         )
-        for population, by_response in stats_by_population.items()
+        for analysis in analyses
     ]
 
-    return ResponseFrequencyAnalysis(medians=medians, boxplots=boxplots)
+    return ResponseFrequencyAnalysis(methodology=SIGNIFICANCE_METHOD.description, boxplots=boxplots)

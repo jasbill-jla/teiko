@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
 import {
   fetchResponseFrequencyAnalysis,
+  type PopulationBoxplot,
   type ResponseFrequencyAnalysis,
 } from '../api/responseFrequencyAnalysis'
-import MedianFrequencyTable from '../components/MedianFrequencyTable'
 import ResponseBoxplot from '../components/ResponseBoxplot'
 
 // Fixed by this page -- no controls to change these, per the spec.
 const CONDITION = 'melanoma'
 const TREATMENT = 'miraclib'
 const SAMPLE_TYPE = 'PBMC'
-const DEFAULT_MEDIAN_THRESHOLD = 0.35
 
 export default function ResponseAnalysis() {
-  const [thresholdInput, setThresholdInput] = useState(String(DEFAULT_MEDIAN_THRESHOLD))
-  const [appliedThreshold, setAppliedThreshold] = useState(DEFAULT_MEDIAN_THRESHOLD)
   const [data, setData] = useState<ResponseFrequencyAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,21 +20,13 @@ export default function ResponseAnalysis() {
       condition: CONDITION,
       treatment: TREATMENT,
       sampleType: SAMPLE_TYPE,
-      medianThreshold: appliedThreshold,
     })
       .then((result) => {
         setData(result)
         setError(null)
       })
       .catch((err: Error) => setError(err.message))
-  }, [appliedThreshold])
-
-  function handleRefresh(e: FormEvent) {
-    e.preventDefault()
-    const parsed = Number(thresholdInput)
-    if (Number.isNaN(parsed)) return
-    setAppliedThreshold(parsed)
-  }
+  }, [])
 
   return (
     <div className="container-fluid py-4">
@@ -47,47 +35,58 @@ export default function ResponseAnalysis() {
         {CONDITION} subjects treated with {TREATMENT}, {SAMPLE_TYPE} samples
       </p>
 
-      <form className="d-flex align-items-end gap-2 mb-4" onSubmit={handleRefresh}>
-        <div>
-          <label htmlFor="median-threshold" className="form-label mb-0">
-            Median difference threshold (percentage points)
-          </label>
-          <input
-            id="median-threshold"
-            type="number"
-            step="0.1"
-            className="form-control form-control-sm"
-            value={thresholdInput}
-            onChange={(e) => setThresholdInput(e.target.value)}
-          />
-        </div>
-        <button type="submit" className="btn btn-primary btn-sm">
-          Refresh
-        </button>
-      </form>
-
       {error && <div className="alert alert-danger">{error}</div>}
       {!error && !data && <p>Loading...</p>}
 
       {data && (
         <>
-          {data.boxplots.length === 0 ? (
-            <p className="text-muted">
-              No cell population's median difference exceeds this threshold.
-            </p>
-          ) : (
-            <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
-              {data.boxplots.map((boxplot) => (
-                <div className="col" key={boxplot.population}>
-                  <ResponseBoxplot boxplot={boxplot} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <MedianFrequencyTable medians={data.medians} />
+          <p className="fst-italic">{data.methodology}</p>
+          <BoxplotSections boxplots={data.boxplots} />
         </>
       )}
+    </div>
+  )
+}
+
+function BoxplotSections({ boxplots }: { boxplots: PopulationBoxplot[] }) {
+  const significant = boxplots.filter((boxplot) => boxplot.significant)
+  const notSignificant = boxplots.filter((boxplot) => !boxplot.significant)
+
+  return (
+    <>
+      <h2 className="h5">Statistically Significant ({significant.length})</h2>
+      {significant.length === 0 ? (
+        <p className="text-muted">No cell population reached statistical significance.</p>
+      ) : (
+        <BoxplotGrid boxplots={significant} />
+      )}
+
+      <div className="d-flex align-items-center my-4" role="separator">
+        <hr className="flex-grow-1" />
+        <span className="mx-3 text-muted small text-uppercase">
+          Below: not statistically significant
+        </span>
+        <hr className="flex-grow-1" />
+      </div>
+
+      <h2 className="h5">Not Statistically Significant ({notSignificant.length})</h2>
+      {notSignificant.length === 0 ? (
+        <p className="text-muted">Every cell population reached statistical significance.</p>
+      ) : (
+        <BoxplotGrid boxplots={notSignificant} />
+      )}
+    </>
+  )
+}
+
+function BoxplotGrid({ boxplots }: { boxplots: PopulationBoxplot[] }) {
+  return (
+    <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
+      {boxplots.map((boxplot) => (
+        <div className="col" key={boxplot.population}>
+          <ResponseBoxplot boxplot={boxplot} />
+        </div>
+      ))}
     </div>
   )
 }
