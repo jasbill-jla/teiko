@@ -1,9 +1,19 @@
 """FastAPI app entrypoint. Run with: uvicorn backend.main:app"""
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from backend.api.routes.cell_frequencies import router as cell_frequencies_router
+from backend.core.config import REPO_ROOT
 
 app = FastAPI(title="teiko")
 
 app.include_router(cell_frequencies_router, prefix="/api")
+
+# Registered after the API routes, so /api/* always resolves to them first.
+# Only present once `npm run build` has produced a frontend/dist -- absent in
+# backend-only contexts like the test suite, so this is skipped rather than
+# mounting a directory that doesn't exist.
+FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
+if FRONTEND_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
