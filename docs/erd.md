@@ -8,29 +8,32 @@ erDiagram
     SUBJECT ||--o{ SAMPLE       : "has"
 
     PROJECT {
-        string id PK
+        int id PK
+        string source_id UK "CSV project id"
         string sample_type
     }
     SUBJECT {
-        string id PK
-        string project_id FK
+        int id PK
+        string source_id UK "CSV subject id"
+        int project_id FK
         int age
         string sex
         string treatment_response
-        string condition_id FK "nullable"
-        string treatment_id FK "nullable"
+        int condition_id FK "nullable"
+        int treatment_id FK "nullable"
     }
     CONDITION {
-        string id PK
-        string name
+        int id PK
+        string name UK
     }
     TREATMENT {
-        string id PK
-        string name
+        int id PK
+        string name UK
     }
     SAMPLE {
-        string id PK
-        string subject_id FK
+        int id PK
+        string source_id UK "CSV sample id"
+        int subject_id FK
         int time_from_treatment
         int b_cell
         int cd8_t_cell
@@ -51,3 +54,4 @@ erDiagram
 
 - `sample_type` lives on Project, not Sample: in the source CSV it is fully determined by project (each project uses exactly one sample_type across all its samples), and PBMC vs. WB is a lab-processing/protocol choice that's realistically standardized per study site rather than varying per subject or per draw. Storing it on Sample would be a transitive functional dependency (Sample → Subject → Project → sample_type).
 - No direct Condition↔Treatment relationship: the CSV shows a full cross-product of the two active treatments against the two non-healthy conditions, with no combination missing — consistent with treatment being assigned independently of condition, not with condition constraining eligible treatments. More importantly, any condition-treatment pairing is already derivable by joining through Subject's own `condition_id`/`treatment_id` FKs; a dedicated `condition_treatment` junction table would just duplicate that with no independent source of truth behind it.
+- Every PK is a surrogate auto-incrementing integer (`id`), never the CSV's own identifier. `Project`, `Subject`, and `Sample` each keep their CSV-native identifier as `source_id`, and `Condition`/`Treatment` keep theirs as `name` (they have no id in the CSV, only a label) — both `UNIQUE NOT NULL`, both still get their own index, so looking a row up by its CSV id is exactly as fast as if it were the PK. Every FK in the schema references the target's surrogate integer `id`, never a CSV string. See the README's "Database Schema" section for the full rationale and how this scales.
