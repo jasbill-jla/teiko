@@ -167,8 +167,12 @@ export default function CellFrequencyTable({ rows }: Props) {
                     <td>{row.percentage.toFixed(2)}%</td>
                   </tr>
                   {isExpanded && (
-                    <tr className="d-sm-none" style={stripeStyle}>
-                      <td colSpan={5} className="small">
+                    <tr className="d-sm-none">
+                      {/* Fixed background regardless of the row's own stripe
+                          (bg-body-secondary), not stripeStyle -- darker than
+                          the striped-row tint but still light enough for
+                          normal text contrast. */}
+                      <td colSpan={5} className="small bg-body-secondary">
                         <div className="ps-3">Count: {row.count.toLocaleString()}</div>
                         <div className="ps-3">Total Count: {row.total_count.toLocaleString()}</div>
                       </td>
