@@ -39,6 +39,34 @@ The ERD models `Condition` and `Treatment` as separate entities. The implemented
 - What this avoids is query and code complexity, not runtime cost: a join from Subject to a two-attribute dimension table on an indexed integer key is already the cheapest possible join shape, so removing it isn't a performance win. It does mean every query or previsualizing step that filters or groups by condition or treatment does so directly on a Subject column instead of via a join, and there are two fewer tables and relationships to keep in sync with the pipeline's ingest step.
 - This is a reversible bet, not a dead end: if a real requirement ever needs per-condition or per-treatment attributes, that's a straightforward migration — extract the distinct values into a new table, backfill, replace the string column with a foreign key — not a redesign of `Project`, `Subject`, or `Sample`.
 
+## API
+
+**`GET /api/cell-frequencies`** — no parameters. Returns the relative-frequency summary table: one JSON object per (sample, cell population) pair, 5 populations × every sample:
+
+```json
+{
+  "sample": "sample00000",
+  "population": "b_cell",
+  "count": 10908,
+  "total_count": 93214,
+  "percentage": 11.702104834037806
+}
+```
+
+`percentage` is `count` as a percent of `total_count` (0-100, not a 0-1 ratio). Computed at request time, not by the offline pipeline — it's cheap arithmetic over `Sample` rows that already exist, not the kind of aggregation worth pre-crunching:
+- `backend/previsualizing/cell_frequencies.py` — queries `Sample`'s 5 count columns and melts each row into 5 output rows.
+- `backend/schemas/cell_frequencies.py` — the `CellFrequencyRow` Pydantic response model.
+- `backend/api/routes/cell_frequencies.py` — the route handler.
+- `backend/main.py` — the FastAPI app; run with `uvicorn backend.main:app`.
+
+## Testing
+
+`tests/test_cell_frequencies_api.py` has integration tests for `GET /api/cell-frequencies`, using FastAPI's `TestClient` against a schema created with `metadata.create_all()` on a scratch SQLite file (not Alembic, and not the real `teiko.db`) — fast, isolated per test, and independent of whatever's actually loaded. Run with `pytest` from the repo root (needs `backend/requirements.txt` installed; a root-level `conftest.py` makes the `backend` package importable regardless of `pytest`'s own rootdir logic).
+
+`httpx2`, not `httpx`, is what's installed: Starlette's `TestClient` now imports `httpx2` first and only falls back to `httpx` (with a deprecation warning) if `httpx2` isn't installed. No test code imports either package directly — only `fastapi.testclient.TestClient` — so this was a one-line dependency swap.
+
+These are endpoint-level regression tests, not unit tests of the previsualizing/crunching logic — that layer is still expected to change as more of the dashboard gets built, so unit tests for it are deliberately deferred until it settles. `load_data.py` isn't tested either; it's closer to a test fixture (it produces the data everything else is tested against) than code under test.
+
 ### Scaling to hundreds of projects, thousands of samples, and ad hoc analytics
 
 At the scale named above (low hundreds of `Project` rows, low thousands of `Sample` rows), raw point-lookup latency wouldn't meaningfully differ between a string-keyed and integer-keyed design in any of these engines — the tables are small enough to live entirely in buffer cache. The design matters more for the *shape* of the workload than the *size* of the data:

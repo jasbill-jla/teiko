@@ -1,8 +1,10 @@
 """Database engine setup for the teiko backend."""
 
+from collections.abc import Iterator
+
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine
+from sqlalchemy import Connection, create_engine
 
 from backend.core.config import DATABASE_URL, DB_PATH, REPO_ROOT
 
@@ -14,3 +16,9 @@ def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     alembic_cfg = Config(str(REPO_ROOT / "alembic.ini"))
     command.upgrade(alembic_cfg, "head")
+
+
+def get_connection() -> Iterator[Connection]:
+    """FastAPI dependency yielding a DB connection, closed after the request."""
+    with engine.connect() as conn:
+        yield conn
