@@ -1,20 +1,22 @@
 """Boxplot summary stats of cell-population frequencies, split by response.
 
-For subjects with a given condition and treatment, and samples of a given
-type, computes the five-number summary (min, Q1, median, Q3, max) of each
-population's relative frequency, separately for responding ("yes") and
-non-responding ("no") subjects. Each Sample row matching the filters is one
-data point -- same per-sample frequency computation as
-crunching.cell_frequencies, just scoped and grouped differently.
+Restricted to the cell populations whose responder vs. non-responder median
+frequency differs by at least a caller-supplied threshold -- see
+crunching.response_frequencies for the three building blocks this composes:
+the raw per-sample data pull, the per-population medians, and the
+significance filter itself.
 """
 
 from dataclasses import dataclass
 from statistics import quantiles
 
-from sqlalchemy import Connection, select
+from sqlalchemy import Connection
 
-from backend.crunching.cell_frequencies import POPULATIONS
-from backend.models.tables import project, sample, subject
+from backend.crunching.response_frequencies import (
+    get_response_frequencies,
+    get_response_median_frequencies,
+    get_significant_response_populations,
+)
 
 
 @dataclass(frozen=True)
@@ -34,54 +36,38 @@ def get_response_frequency_boxplot_stats(
     condition: str,
     treatment: str,
     sample_type: str,
+    significance_threshold: float,
 ) -> list[FrequencyBoxplotStats]:
-    rows = conn.execute(
-        select(
-            subject.c.treatment_response,
-            sample.c.b_cell,
-            sample.c.cd8_t_cell,
-            sample.c.cd4_t_cell,
-            sample.c.nk_cell,
-            sample.c.monocyte,
-        )
-        .select_from(sample.join(subject).join(project))
-        .where(
-            subject.c.condition_name == condition,
-            subject.c.treatment_name == treatment,
-            project.c.sample_type == sample_type,
-            # Subjects matching a real condition/treatment always have a
-            # response in practice, but this filters out None defensively
-            # rather than assuming that holds for every possible input.
-            subject.c.treatment_response.is_not(None),
-        )
-    ).all()
+    """Five-number summary per population/response, significant populations only.
 
-    # frequencies[population][response] -> that group's per-sample percentages
-    frequencies: dict[str, dict[str, list[float]]] = {
-        population: {"yes": [], "no": []} for population in POPULATIONS
-    }
-    for row in rows:
-        counts = {population: getattr(row, population) for population in POPULATIONS}
-        total_count = sum(counts.values())
-        for population, count in counts.items():
-            frequencies[population][row.treatment_response].append(100 * count / total_count)
+    A cell population is included only if its responder vs. non-responder
+    median frequency differs by at least `significance_threshold` percentage
+    points (see get_significant_response_populations); populations that
+    don't clear that bar, or that are missing one of the two response
+    groups entirely, are omitted rather than returned as empty/zeroed rows.
+    """
+    frequencies = get_response_frequencies(
+        conn, condition=condition, treatment=treatment, sample_type=sample_type
+    )
+    medians = get_response_median_frequencies(frequencies)
+    significant_populations = get_significant_response_populations(
+        medians, significance_threshold
+    )
 
     result: list[FrequencyBoxplotStats] = []
-    for population in POPULATIONS:
+    for population in significant_populations:
         for response, values in frequencies[population].items():
-            if not values:
-                continue
             if len(values) == 1:
-                q1 = median = q3 = values[0]
+                q1 = response_median = q3 = values[0]
             else:
-                q1, median, q3 = quantiles(values, n=4, method="inclusive")
+                q1, response_median, q3 = quantiles(values, n=4, method="inclusive")
             result.append(
                 FrequencyBoxplotStats(
                     population=population,
                     response=response,
                     minimum=min(values),
                     q1=q1,
-                    median=median,
+                    median=response_median,
                     q3=q3,
                     maximum=max(values),
                 )
