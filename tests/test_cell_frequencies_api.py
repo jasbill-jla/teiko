@@ -7,21 +7,12 @@ about verifying migrations (see backend/alembic for that).
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, insert
 
 from backend.core.db import get_connection
 from backend.main import app
-from backend.models.tables import metadata, project, sample, subject
+from tests.conftest import insert_project, insert_sample, insert_subject
 
 POPULATIONS = ("b_cell", "cd8_t_cell", "cd4_t_cell", "nk_cell", "monocyte")
-
-
-@pytest.fixture
-def engine(tmp_path):
-    eng = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
-    metadata.create_all(eng)
-    yield eng
-    eng.dispose()
 
 
 @pytest.fixture
@@ -36,33 +27,12 @@ def client(engine):
 
 
 def _insert_subject(engine, source_id="sbj000"):
-    with engine.begin() as conn:
-        project_id = conn.execute(
-            insert(project).values(source_id="prj1", sample_type="PBMC")
-        ).inserted_primary_key[0]
-        return conn.execute(
-            insert(subject).values(
-                source_id=source_id,
-                project_id=project_id,
-                age=57,
-                sex="M",
-                treatment_response="yes",
-                condition_name="melanoma",
-                treatment_name="miraclib",
-            )
-        ).inserted_primary_key[0]
+    project_id = insert_project(engine)
+    return insert_subject(engine, project_id, source_id=source_id)
 
 
 def _insert_sample(engine, subject_id, source_id, counts):
-    with engine.begin() as conn:
-        conn.execute(
-            insert(sample).values(
-                source_id=source_id,
-                subject_id=subject_id,
-                time_from_treatment=0,
-                **counts,
-            )
-        )
+    insert_sample(engine, subject_id, source_id, counts)
 
 
 def test_no_samples_returns_empty_list(client):

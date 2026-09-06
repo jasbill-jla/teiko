@@ -24,7 +24,14 @@ BONFERRONI_ALPHA = ALPHA / len(POPULATIONS)
 
 def _test(responder_values: list[float], non_responder_values: list[float]) -> SignificanceResult:
     _, p_value = mannwhitneyu(responder_values, non_responder_values, alternative="two-sided")
-    return SignificanceResult(statistic=p_value, significant=p_value < BONFERRONI_ALPHA)
+    # scipy returns numpy scalars (numpy.float64, and numpy.bool_ from the
+    # comparison below) -- cast to native Python types so SignificanceResult
+    # actually holds what its annotations (float, bool) declare, not just
+    # something that happens to behave similarly (e.g. `numpy.bool_() is
+    # False` is False, unlike a real Python bool).
+    return SignificanceResult(
+        statistic=float(p_value), significant=bool(p_value < BONFERRONI_ALPHA)
+    )
 
 
 MANN_WHITNEY_U = SignificanceMethod(
