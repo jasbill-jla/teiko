@@ -47,7 +47,12 @@ export default function CellFrequencyTable({ rows }: Props) {
   }
 
   function toggleSort() {
-    setPercentageSort((prev) => (prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'))
+    setPercentageSort((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    setPage(0)
+  }
+
+  function resetSort() {
+    setPercentageSort(null)
     setPage(0)
   }
 
@@ -55,7 +60,7 @@ export default function CellFrequencyTable({ rows }: Props) {
     <div>
       <div className="d-flex align-items-center gap-2 mb-2">
         <label htmlFor="population-filter" className="col-form-label col-form-label-sm">
-          Population
+          Filter by population
         </label>
         <select
           id="population-filter"
@@ -87,6 +92,15 @@ export default function CellFrequencyTable({ rows }: Props) {
                 >
                   Percentage{sortIndicator(percentageSort)}
                 </button>
+                {percentageSort && (
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 text-decoration-none text-muted ms-2"
+                    onClick={resetSort}
+                  >
+                    Reset sort
+                  </button>
+                )}
               </th>
             </tr>
           </thead>
