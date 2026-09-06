@@ -6,6 +6,14 @@ Implemented as three tables: `Project`, `Subject`, `Sample` — see `backend/mod
 
 Schema changes are managed with [Alembic](https://alembic.sqlalchemy.org/) migrations (`backend/alembic/`, config at `alembic.ini`), not by calling `create_all()` directly — the pipeline's DB setup runs `alembic upgrade head` under the hood. The initial migration (`backend/alembic/versions/0b3fbdd2ef15_create_project_subject_sample_tables.py`) creates exactly this schema; any future schema change is a new migration on top of it rather than an edit to the models with no record of how to get an existing database there.
 
+### Loading the data
+
+`load_data.py`, at the repo root, initializes the database and loads every row of `data/cell-count.csv` (the committed input file). It calls `init_db()` first (running migrations, so it never reimplements schema creation), then loads the CSV — the two are separate concerns that compose rather than conflict: migrations own structure, this script owns data. It's safe to run more than once: each run wipes the three tables and reloads from the CSV, rather than appending or erroring on the `source_id` uniqueness constraints.
+
+The generated SQLite file lands at `teiko.db` in the repo root, per the spec's requirement that the database file live there.
+
+Two CSV values are normalized to `NULL` rather than stored literally, matching the nullable `condition_name`/`treatment_name`/`treatment_response` columns on `Subject`: a `condition` of `"healthy"` means no diagnosed condition, and a `treatment` of `"none"` means no treatment was given — both are the absence of that attribute, not a named category. `response` is already blank in the CSV for these same untreated/healthy subjects.
+
 For the entity analysis behind this schema, see [`docs/erd.md`](docs/erd.md). That diagram documents `Condition` and `Treatment` as their own entities because that's the honest shape of the domain (a subject has at most one condition and one treatment, each identified by a name) — but the ERD is the analysis that led to this schema, not a description of it, and was never intended to be isomorphic with the implementation. The database schema below intentionally departs from it in one place, explained below.
 
 ### Surrogate integer primary keys, CSV identifiers preserved as unique attributes

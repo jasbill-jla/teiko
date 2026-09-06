@@ -27,7 +27,7 @@ subject = Table(
     Column("project_id", Integer, ForeignKey("project.id"), nullable=False),
     Column("age", Integer, nullable=False),
     Column("sex", String, nullable=False),
-    Column("treatment_response", String, nullable=False),
+    Column("treatment_response", String, nullable=True),
     Column("condition_name", String, nullable=True),
     Column("treatment_name", String, nullable=True),
 )

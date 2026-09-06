@@ -34,7 +34,7 @@ def upgrade() -> None:
     sa.Column('project_id', sa.Integer(), nullable=False),
     sa.Column('age', sa.Integer(), nullable=False),
     sa.Column('sex', sa.String(), nullable=False),
-    sa.Column('treatment_response', sa.String(), nullable=False),
+    sa.Column('treatment_response', sa.String(), nullable=True),
     sa.Column('condition_name', sa.String(), nullable=True),
     sa.Column('treatment_name', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['project_id'], ['project.id'], ),
