@@ -152,15 +152,9 @@ export default function CellFrequencyTable({ rows }: Props) {
                   </tr>
                   {isExpanded && (
                     <tr className="d-sm-none">
-                      <td colSpan={5} className="bg-body-secondary small">
-                        <div className="d-flex justify-content-between">
-                          <span>Count:</span>
-                          <span>{row.count.toLocaleString()}</span>
-                        </div>
-                        <div className="d-flex justify-content-between">
-                          <span>Total Count:</span>
-                          <span>{row.total_count.toLocaleString()}</span>
-                        </div>
+                      <td colSpan={5} className="small">
+                        <div className="ps-3">Count: {row.count.toLocaleString()}</div>
+                        <div className="ps-3">Total Count: {row.total_count.toLocaleString()}</div>
                       </td>
                     </tr>
                   )}

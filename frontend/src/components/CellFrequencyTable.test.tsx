@@ -87,17 +87,17 @@ describe('CellFrequencyTable', () => {
     render(<CellFrequencyTable rows={ROWS} />)
 
     const toggle = screen.getByRole('button', { name: 'Expand details for s1 b_cell' })
-    expect(screen.queryByText('Count:')).not.toBeInTheDocument()
+    expect(screen.queryByText('Count: 10')).not.toBeInTheDocument()
 
     fireEvent.click(toggle)
-    expect(screen.getByText('Count:').nextSibling).toHaveTextContent('10')
-    expect(screen.getByText('Total Count:').nextSibling).toHaveTextContent('100')
+    expect(screen.getByText('Count: 10')).toBeInTheDocument()
+    expect(screen.getByText('Total Count: 100')).toBeInTheDocument()
     // Other rows are unaffected.
     expect(
       screen.queryByRole('button', { name: /Collapse details for s2 nk_cell/ }),
     ).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse details for s1 b_cell' }))
-    expect(screen.queryByText('Count:')).not.toBeInTheDocument()
+    expect(screen.queryByText('Count: 10')).not.toBeInTheDocument()
   })
 })
