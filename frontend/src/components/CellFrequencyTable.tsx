@@ -66,7 +66,7 @@ export default function CellFrequencyTable({ rows }: Props) {
               className="btn btn-link btn-sm p-0 text-decoration-none"
               onClick={resetSort}
             >
-              Reset
+              Reset Sort
             </button>
             <span className="text-muted">|</span>
           </>
