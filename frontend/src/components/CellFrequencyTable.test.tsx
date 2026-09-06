@@ -12,10 +12,21 @@ const ROWS: CellFrequencyRow[] = [
   { sample: 's1', population: 'cd4_t_cell', count: 15, total_count: 100, percentage: 15 },
 ]
 
+// The sample cell also holds the mobile expand/collapse toggle button, so
+// its text content isn't just the sample id -- pull out the text nodes only.
+function sampleCellText(td: Element): string {
+  return Array.from(td.childNodes)
+    .filter((node) => node.nodeType === Node.TEXT_NODE)
+    .map((node) => node.textContent)
+    .join('')
+    .trim()
+}
+
+// Excludes the mobile detail rows (class d-sm-none), which aren't data rows.
 function renderedRowKeys(): string[] {
-  return Array.from(document.querySelectorAll('tbody tr')).map((tr) => {
+  return Array.from(document.querySelectorAll('tbody > tr:not(.d-sm-none)')).map((tr) => {
     const cells = tr.querySelectorAll('td')
-    return `${cells[0].textContent}-${cells[1].textContent}`
+    return `${sampleCellText(cells[0])}-${cells[1].textContent}`
   })
 }
 
@@ -70,5 +81,23 @@ describe('CellFrequencyTable', () => {
     fireEvent.click(screen.getByText('Reset Sort'))
     expect(renderedRowKeys()).toEqual(ROWS.map(rowKey))
     expect(screen.queryByText('Reset Sort')).not.toBeInTheDocument()
+  })
+
+  it('expands a row to reveal Count and Total Count, and collapses it back', () => {
+    render(<CellFrequencyTable rows={ROWS} />)
+
+    const toggle = screen.getByRole('button', { name: 'Expand details for s1 b_cell' })
+    expect(screen.queryByText('Count:')).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(screen.getByText('Count:').nextSibling).toHaveTextContent('10')
+    expect(screen.getByText('Total Count:').nextSibling).toHaveTextContent('100')
+    // Other rows are unaffected.
+    expect(
+      screen.queryByRole('button', { name: /Collapse details for s2 nk_cell/ }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse details for s1 b_cell' }))
+    expect(screen.queryByText('Count:')).not.toBeInTheDocument()
   })
 })

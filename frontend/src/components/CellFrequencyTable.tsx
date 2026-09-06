@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import type { CellFrequencyRow } from '../api/cellFrequencies'
 
 interface Props {
@@ -14,6 +14,7 @@ export default function CellFrequencyTable({ rows }: Props) {
   const [page, setPage] = useState(0)
   const [populationFilter, setPopulationFilter] = useState(ALL_POPULATIONS)
   const [percentageSort, setPercentageSort] = useState<SortDirection>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
   // Derived from the data rather than hardcoded, so the filter stays in
   // sync with whatever populations the backend actually returns.
@@ -56,6 +57,18 @@ export default function CellFrequencyTable({ rows }: Props) {
     setPage(0)
   }
 
+  function toggleExpanded(key: string) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
   return (
     <div>
       <div className="d-flex align-items-center gap-2 mb-2">
@@ -94,8 +107,12 @@ export default function CellFrequencyTable({ rows }: Props) {
             <tr>
               <th scope="col">Sample</th>
               <th scope="col">Population</th>
-              <th scope="col">Count</th>
-              <th scope="col">Total Count</th>
+              <th scope="col" className="d-none d-sm-table-cell">
+                Count
+              </th>
+              <th scope="col" className="d-none d-sm-table-cell">
+                Total Count
+              </th>
               <th scope="col">
                 <button
                   type="button"
@@ -108,15 +125,48 @@ export default function CellFrequencyTable({ rows }: Props) {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row) => (
-              <tr key={`${row.sample}-${row.population}`}>
-                <td>{row.sample}</td>
-                <td>{row.population}</td>
-                <td>{row.count.toLocaleString()}</td>
-                <td>{row.total_count.toLocaleString()}</td>
-                <td>{row.percentage.toFixed(2)}%</td>
-              </tr>
-            ))}
+            {pageRows.map((row) => {
+              const key = `${row.sample}-${row.population}`
+              const isExpanded = expandedRows.has(key)
+              return (
+                <Fragment key={key}>
+                  <tr>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0 text-decoration-none d-sm-none me-1"
+                        onClick={() => toggleExpanded(key)}
+                        aria-expanded={isExpanded}
+                        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details for ${row.sample} ${row.population}`}
+                      >
+                        {isExpanded ? '▾' : '▸'}
+                      </button>
+                      {row.sample}
+                    </td>
+                    <td>{row.population}</td>
+                    <td className="d-none d-sm-table-cell">{row.count.toLocaleString()}</td>
+                    <td className="d-none d-sm-table-cell">
+                      {row.total_count.toLocaleString()}
+                    </td>
+                    <td>{row.percentage.toFixed(2)}%</td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="d-sm-none">
+                      <td colSpan={5} className="bg-body-secondary small">
+                        <div className="d-flex justify-content-between">
+                          <span>Count:</span>
+                          <span>{row.count.toLocaleString()}</span>
+                        </div>
+                        <div className="d-flex justify-content-between">
+                          <span>Total Count:</span>
+                          <span>{row.total_count.toLocaleString()}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </div>
