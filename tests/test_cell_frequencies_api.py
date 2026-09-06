@@ -137,3 +137,23 @@ def test_multiple_samples_are_independent_and_ordered(engine, client):
     b_cell_b = next(row for row in data[5:] if row["population"] == "b_cell")
     assert b_cell_b["total_count"] == 10
     assert b_cell_b["percentage"] == pytest.approx(100.0)
+
+
+def test_samples_ordered_by_insertion_not_by_source_id(engine, client):
+    # source_id sorts the opposite of insertion order here, so this proves
+    # the endpoint orders by Sample.id (insertion order) and not by the
+    # source_id string -- test_multiple_samples_are_independent_and_ordered
+    # alone can't tell those two apart, since there source_id happens to
+    # already be in insertion order.
+    subject_id = _insert_subject(engine)
+    counts = {"b_cell": 1, "cd8_t_cell": 1, "cd4_t_cell": 1, "nk_cell": 1, "monocyte": 1}
+    _insert_sample(engine, subject_id, "zzz_inserted_first", counts)
+    _insert_sample(engine, subject_id, "aaa_inserted_second", counts)
+
+    data = client.get("/api/cell-frequencies").json()
+    assert len(data) == 10
+
+    assert [row["sample"] for row in data[:5]] == ["zzz_inserted_first"] * 5
+    assert [row["population"] for row in data[:5]] == list(POPULATIONS)
+    assert [row["sample"] for row in data[5:]] == ["aaa_inserted_second"] * 5
+    assert [row["population"] for row in data[5:]] == list(POPULATIONS)

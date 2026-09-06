@@ -89,8 +89,18 @@ At the scale named above (low hundreds of `Project` rows, low thousands of `Samp
 
 ## Testing
 
+### Backend
+
 `tests/test_cell_frequencies_api.py` has integration tests for `GET /api/cell-frequencies`, using FastAPI's `TestClient` against a schema created with `metadata.create_all()` on a scratch SQLite file (not Alembic, and not the real `teiko.db`) — fast, isolated per test, and independent of whatever's actually loaded. Run with `pytest` from the repo root (needs `backend/requirements.txt` installed; a root-level `conftest.py` makes the `backend` package importable regardless of `pytest`'s own rootdir logic).
 
 `httpx2`, not `httpx`, is what's installed: Starlette's `TestClient` now imports `httpx2` first and only falls back to `httpx` (with a deprecation warning) if `httpx2` isn't installed. No test code imports either package directly — only `fastapi.testclient.TestClient` — so this was a one-line dependency swap.
 
 These are endpoint-level regression tests, not unit tests of the previsualizing/crunching logic — that layer is still expected to change as more of the dashboard gets built, so unit tests for it are deliberately deferred until it settles. `load_data.py` isn't tested either; it's closer to a test fixture (it produces the data everything else is tested against) than code under test.
+
+`test_multiple_samples_are_independent_and_ordered` and `test_samples_ordered_by_insertion_not_by_source_id` pin down the ordering `get_cell_frequencies` produces (`Sample.id` — insertion order — then the fixed `POPULATIONS` tuple order per sample): the second test specifically inserts samples whose `source_id` sorts the *opposite* of insertion order, so it can't pass by accident of the two orderings coinciding. The frontend's default (unsorted) table order depends on this staying true, since it does no client-side re-sort of its own.
+
+### Frontend
+
+`frontend/src/components/CellFrequencyTable.test.tsx` covers the table's client-side behavior with Vitest + React Testing Library: the default (unsorted) render preserves the order the `rows` prop was given in; the population filter narrows to matching rows and its options are derived from the data; clicking the "Percentage" header sorts ascending then descending; and "Reset Sort" appears only while a sort is active, and restores the original order when clicked. Run with `npm run test` (or `npm test`) from `frontend/`.
+
+`frontend/src/setupTests.ts` calls `cleanup()` after each test — required because `vite.config.ts`'s `test` block doesn't set `globals: true` (kept off deliberately, so test files import `describe`/`it`/`expect` from `vitest` explicitly rather than relying on ambient globals), and React Testing Library's automatic cleanup only self-registers when it detects those globals. Without it, each `render()` call in a later test would stack on top of the previous test's DOM instead of starting fresh.
