@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import Connection
 
 from backend.core.db import get_connection
-from backend.previsualizing.cell_frequencies import get_cell_frequencies
+from backend.crunching.cell_frequencies import get_cell_frequencies
 from backend.schemas.cell_frequencies import CellFrequencyRow
 
 router = APIRouter()

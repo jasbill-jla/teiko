@@ -1,4 +1,11 @@
-"""Shapes Sample rows into the cell-population-frequency summary table."""
+"""Pulls Sample rows and computes per-population frequency data.
+
+This is the population frequency dataset itself -- every (sample, population)
+pair with its count, the sample's total count, and its relative percentage.
+GET /api/cell-frequencies serves it as-is; other analyses (e.g. relapse vs.
+non-relapse comparisons) are expected to build on this same function rather
+than re-querying Sample themselves.
+"""
 
 from sqlalchemy import Connection, select
 

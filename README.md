@@ -72,7 +72,7 @@ At the scale named above (low hundreds of `Project` rows, low thousands of `Samp
 ```
 
 `percentage` is `count` as a percent of `total_count` (0-100, not a 0-1 ratio). Computed at request time, not by the offline pipeline — it's cheap arithmetic over `Sample` rows that already exist, not the kind of aggregation worth pre-crunching:
-- `backend/previsualizing/cell_frequencies.py` — queries `Sample`'s 5 count columns and melts each row into 5 output rows.
+- `backend/crunching/cell_frequencies.py` — queries `Sample`'s 5 count columns and melts each row into 5 output rows; this is the population frequency dataset itself, so other analyses that need it (not just this endpoint) call this same function rather than re-querying `Sample`.
 - `backend/schemas/cell_frequencies.py` — the `CellFrequencyRow` Pydantic response model.
 - `backend/api/routes/cell_frequencies.py` — the route handler.
 - `backend/main.py` — the FastAPI app; run with `uvicorn backend.main:app`.
