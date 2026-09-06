@@ -13,15 +13,19 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
+    "plotly.js-dist-min": "^4.0.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-plotly.js": "^4.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",
+    "@types/plotly.js": "^3.0.13",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@types/react-plotly.js": "^2.6.4",
     "@vitejs/plugin-react": "^6.1.0",
     "jsdom": "^30.0.1",
     "openapi-typescript": "^7.13.0",
