@@ -4,6 +4,8 @@
 
 Implemented as three tables: `Project`, `Subject`, `Sample` — see `backend/models/tables.py` for the SQLAlchemy Core definitions.
 
+Schema changes are managed with [Alembic](https://alembic.sqlalchemy.org/) migrations (`backend/alembic/`, config at `alembic.ini`), not by calling `create_all()` directly — the pipeline's DB setup runs `alembic upgrade head` under the hood. The initial migration (`backend/alembic/versions/0b3fbdd2ef15_create_project_subject_sample_tables.py`) creates exactly this schema; any future schema change is a new migration on top of it rather than an edit to the models with no record of how to get an existing database there.
+
 For the entity analysis behind this schema, see [`docs/erd.md`](docs/erd.md). That diagram documents `Condition` and `Treatment` as their own entities because that's the honest shape of the domain (a subject has at most one condition and one treatment, each identified by a name) — but the ERD is the analysis that led to this schema, not a description of it, and was never intended to be isomorphic with the implementation. The database schema below intentionally departs from it in one place, explained below.
 
 ### Surrogate integer primary keys, CSV identifiers preserved as unique attributes
