@@ -1,12 +1,18 @@
 """FastAPI app entrypoint. Run with: uvicorn backend.main:app"""
 
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routes.cell_frequencies import router as cell_frequencies_router
 from backend.core.config import REPO_ROOT
 
 app = FastAPI(title="teiko")
+
+# /api/cell-frequencies is ~6MB of repetitive JSON uncompressed -- over
+# Codespaces' port-forwarding tunnel (a real network hop, not loopback) that
+# dominates page load. gzip shrinks it several-fold for negligible CPU cost.
+app.add_middleware(GZipMiddleware)
 
 app.include_router(cell_frequencies_router, prefix="/api")
 
