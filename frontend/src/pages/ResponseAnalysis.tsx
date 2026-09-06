@@ -11,7 +11,7 @@ import ResponseBoxplot from '../components/ResponseBoxplot'
 const CONDITION = 'melanoma'
 const TREATMENT = 'miraclib'
 const SAMPLE_TYPE = 'PBMC'
-const DEFAULT_MEDIAN_THRESHOLD = 10
+const DEFAULT_MEDIAN_THRESHOLD = 0.35
 
 export default function ResponseAnalysis() {
   const [thresholdInput, setThresholdInput] = useState(String(DEFAULT_MEDIAN_THRESHOLD))
