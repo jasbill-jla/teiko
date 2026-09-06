@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import ResponseAnalysis from './pages/ResponseAnalysis'
+import SamplesExplorer from './pages/SamplesExplorer'
 
-type Page = 'cell-frequencies' | 'response-analysis'
+type Page = 'cell-frequencies' | 'response-analysis' | 'samples-explorer'
 
 // Plain state, not a router -- frontend/dist is served via FastAPI's
 // StaticFiles(html=True) with no SPA fallback for sub-paths, so a
-// path-based route would 404 on direct navigation/refresh. Fine for two
-// pages; worth revisiting with a real router + backend fallback if this
-// grows.
+// path-based route would 404 on direct navigation/refresh. Fine for a
+// handful of pages; worth revisiting with a real router + backend fallback
+// if this grows much further.
 export default function App() {
   const [page, setPage] = useState<Page>('cell-frequencies')
 
@@ -35,9 +36,20 @@ export default function App() {
               Response Analysis
             </button>
           </li>
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link btn btn-link ${page === 'samples-explorer' ? 'active fw-bold' : ''}`}
+              onClick={() => setPage('samples-explorer')}
+            >
+              Sample Explorer
+            </button>
+          </li>
         </ul>
       </nav>
-      {page === 'cell-frequencies' ? <Dashboard /> : <ResponseAnalysis />}
+      {page === 'cell-frequencies' && <Dashboard />}
+      {page === 'response-analysis' && <ResponseAnalysis />}
+      {page === 'samples-explorer' && <SamplesExplorer />}
     </div>
   )
 }

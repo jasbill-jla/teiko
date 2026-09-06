@@ -1,0 +1,26 @@
+import type { components, operations } from '../types/api'
+
+export type SampleRecord = components['schemas']['SampleRecord']
+export type GroupCount = components['schemas']['GroupCount']
+export type SamplesResult = components['schemas']['SamplesResult']
+export type SamplesQuery = operations['read_samples_api_samples_get']['parameters']['query']
+
+export async function fetchSamples(query: SamplesQuery): Promise<SamplesResult> {
+  const params = new URLSearchParams()
+  params.set('grouping', query.grouping)
+  if (query.condition) params.set('condition', query.condition)
+  if (query.treatment) params.set('treatment', query.treatment)
+  if (query.sample_type) params.set('sample_type', query.sample_type)
+  if (query.time_from_treatment !== null && query.time_from_treatment !== undefined) {
+    params.set('time_from_treatment', String(query.time_from_treatment))
+  }
+  if (query.group_count_field) params.set('group_count_field', query.group_count_field)
+
+  const response = await fetch(`/api/samples?${params}`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    const detail = body && typeof body.detail === 'string' ? body.detail : response.statusText
+    throw new Error(`GET /api/samples failed: ${response.status} ${detail}`)
+  }
+  return response.json()
+}
