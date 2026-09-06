@@ -104,6 +104,31 @@ Against the real dataset, **zero populations reach significance** at that correc
 
 **This wasn't the first answer.** Mann-Whitney U and chi-squared were both considered earlier in this project, and a plain magnitude-difference threshold was used instead, deliberately: Mann-Whitney U wasn't declined on technical grounds (chi-squared genuinely doesn't fit — it tests association between *categorical* variables via a contingency table of counts, but a population's relative frequency here is continuous), it was declined because applying a test without being able to defend it firsthand wouldn't have been an honest representation of the author's own understanding. That changed on rereading the assignment spec itself: "statistics are needed to support any conclusion to convince [the stakeholder]" reads as a substantive requirement for real inferential statistics, not a wrap-up sentence — which reopened the question on the spec's terms rather than a suggestion to add rigor for its own sake. The independence and multiple-comparisons issues above are exactly what had been flagged as the cost of doing this properly; they're implemented here, not glossed over.
 
+**`GET /api/samples`** — a general sample-browsing/query endpoint, not tied to any specific analysis. Query params:
+- `grouping` (required): `"project"` or `"subject"`.
+- `group_count_field`: `"sex"` or `"response"` — required if and only if `grouping=subject` (`422` otherwise); ignored when `grouping=project`.
+- `condition`, `treatment`, `sample_type`, `time_from_treatment` — all optional; omitting one doesn't restrict the results by it. `time_from_treatment` is an integer (0/7/14 in the real data, but not validated against that specific set).
+
+Returns every `Sample` row matching the given filters (joined with its `Subject` and `Project`), sorted and counted according to `grouping`:
+
+```json
+{
+  "samples": [
+    {
+      "project_source_id": "prj1", "condition": "melanoma", "treatment": "miraclib",
+      "subject_source_id": "sbj000", "age": 57, "sex": "M", "response": "no",
+      "sample_type": "PBMC", "time_from_treatment": 0,
+      "b_cell": 10908, "cd8_t_cell": 24440, "cd4_t_cell": 20491, "nk_cell": 13864, "monocyte": 23511
+    }
+  ],
+  "counts": [{"group": "prj1", "count": 384}, {"group": "prj3", "count": 272}]
+}
+```
+
+`grouping=project` sorts `samples` by project `source_id` first, and `counts` tallies **sample rows** per project. `grouping=subject` sorts by `sex` or `response` (per `group_count_field`) first, and `counts` tallies **distinct subjects**, not sample rows — a subject contributing multiple samples (common; see the response-frequency-analysis section above) would otherwise inflate a subject-level count. This asymmetry — sample-counted for project, subject-counted for sex/response — was confirmed explicitly rather than assumed, since the two readings genuinely diverge whenever subjects have more than one sample: verified against the real data with the same condition/treatment/sample_type/no-time-filter scope used in the response-frequency-analysis section (656 subjects, 1,968 samples) — `grouping=project` counts sum to 1,968, `grouping=subject` counts sum to 656. A subject with no recorded response (condition/treatment not used to filter, so an untreated/healthy subject can appear) groups under the literal string `"none"`, not `null` or `""`.
+
+`backend/crunching/samples.py` (the filtered query, no sorting/grouping) → `backend/previsualizing/samples.py` (sorts and computes counts per the confirmed rules) → `backend/api/routes/samples.py` (thin handler plus the one piece of request-shape validation that isn't a plain type check: `group_count_field` required when `grouping=subject`).
+
 ## Frontend
 
 `frontend/` — Vite + React + TypeScript, two pages: `src/pages/Dashboard.tsx` (the cell-frequency summary table, `src/components/CellFrequencyTable.tsx`, from `GET /api/cell-frequencies`) and `src/pages/ResponseAnalysis.tsx` (responder vs. non-responder analysis for melanoma/miraclib/PBMC, from `GET /api/response-frequency-analysis`).

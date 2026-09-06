@@ -8,6 +8,7 @@ from backend.api.routes.cell_frequencies import router as cell_frequencies_route
 from backend.api.routes.response_frequency_analysis import (
     router as response_frequency_analysis_router,
 )
+from backend.api.routes.samples import router as samples_router
 from backend.core.config import REPO_ROOT
 
 app = FastAPI(title="teiko")
@@ -19,6 +20,7 @@ app.add_middleware(GZipMiddleware)
 
 app.include_router(cell_frequencies_router, prefix="/api")
 app.include_router(response_frequency_analysis_router, prefix="/api")
+app.include_router(samples_router, prefix="/api")
 
 # Registered after the API routes, so /api/* always resolves to them first.
 # Only present once `npm run build` has produced a frontend/dist -- absent in

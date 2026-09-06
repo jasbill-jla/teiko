@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Samples */
+        get: operations["read_samples_api_samples_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -68,6 +85,13 @@ export interface components {
             /** Percentage */
             percentage: number;
         };
+        /** GroupCount */
+        GroupCount: {
+            /** Group */
+            group: string;
+            /** Count */
+            count: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -90,6 +114,44 @@ export interface components {
             methodology: string;
             /** Boxplots */
             boxplots: components["schemas"]["PopulationBoxplot"][];
+        };
+        /** SampleRecord */
+        SampleRecord: {
+            /** Project Source Id */
+            project_source_id: string;
+            /** Condition */
+            condition: string | null;
+            /** Treatment */
+            treatment: string | null;
+            /** Subject Source Id */
+            subject_source_id: string;
+            /** Age */
+            age: number;
+            /** Sex */
+            sex: string;
+            /** Response */
+            response: string | null;
+            /** Sample Type */
+            sample_type: string;
+            /** Time From Treatment */
+            time_from_treatment: number;
+            /** B Cell */
+            b_cell: number;
+            /** Cd8 T Cell */
+            cd8_t_cell: number;
+            /** Cd4 T Cell */
+            cd4_t_cell: number;
+            /** Nk Cell */
+            nk_cell: number;
+            /** Monocyte */
+            monocyte: number;
+        };
+        /** SamplesResult */
+        SamplesResult: {
+            /** Samples */
+            samples: components["schemas"]["SampleRecord"][];
+            /** Counts */
+            counts: components["schemas"]["GroupCount"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -153,6 +215,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResponseFrequencyAnalysis"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_samples_api_samples_get: {
+        parameters: {
+            query: {
+                grouping: "project" | "subject";
+                condition?: string | null;
+                treatment?: string | null;
+                sample_type?: string | null;
+                time_from_treatment?: number | null;
+                group_count_field?: ("sex" | "response") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SamplesResult"];
                 };
             };
             /** @description Validation Error */
