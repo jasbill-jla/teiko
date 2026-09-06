@@ -6,24 +6,10 @@ about verifying migrations (see backend/alembic for that).
 """
 
 import pytest
-from fastapi.testclient import TestClient
 
-from backend.core.db import get_connection
-from backend.main import app
 from tests.conftest import insert_project, insert_sample, insert_subject
 
 POPULATIONS = ("b_cell", "cd8_t_cell", "cd4_t_cell", "nk_cell", "monocyte")
-
-
-@pytest.fixture
-def client(engine):
-    def override_get_connection():
-        with engine.connect() as conn:
-            yield conn
-
-    app.dependency_overrides[get_connection] = override_get_connection
-    yield TestClient(app)
-    app.dependency_overrides.clear()
 
 
 def _insert_subject(engine, source_id="sbj000"):

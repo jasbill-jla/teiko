@@ -6,8 +6,11 @@ about verifying migrations (see backend/alembic for that).
 """
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, insert, create_engine
 
+from backend.core.db import get_connection
+from backend.main import app
 from backend.models.tables import metadata, project, sample, subject
 
 
@@ -17,6 +20,17 @@ def engine(tmp_path):
     metadata.create_all(eng)
     yield eng
     eng.dispose()
+
+
+@pytest.fixture
+def client(engine):
+    def override_get_connection():
+        with engine.connect() as conn:
+            yield conn
+
+    app.dependency_overrides[get_connection] = override_get_connection
+    yield TestClient(app)
+    app.dependency_overrides.clear()
 
 
 def insert_project(engine: Engine, source_id: str = "prj1", sample_type: str = "PBMC") -> int:
