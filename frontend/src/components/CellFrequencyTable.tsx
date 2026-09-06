@@ -6,20 +6,71 @@ interface Props {
 }
 
 const PAGE_SIZE = 100
+const ALL_POPULATIONS = 'all'
+
+type SortDirection = 'asc' | 'desc' | null
 
 export default function CellFrequencyTable({ rows }: Props) {
   const [page, setPage] = useState(0)
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
-  // Rows can change (e.g. a future filter) out from under an existing page
+  const [populationFilter, setPopulationFilter] = useState(ALL_POPULATIONS)
+  const [percentageSort, setPercentageSort] = useState<SortDirection>(null)
+
+  // Derived from the data rather than hardcoded, so the filter stays in
+  // sync with whatever populations the backend actually returns.
+  const populations = useMemo(
+    () => Array.from(new Set(rows.map((row) => row.population))).sort(),
+    [rows],
+  )
+
+  const visibleRows = useMemo(() => {
+    const filtered =
+      populationFilter === ALL_POPULATIONS
+        ? rows
+        : rows.filter((row) => row.population === populationFilter)
+    if (!percentageSort) return filtered
+    const sorted = [...filtered].sort((a, b) => a.percentage - b.percentage)
+    return percentageSort === 'desc' ? sorted.reverse() : sorted
+  }, [rows, populationFilter, percentageSort])
+
+  const pageCount = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE))
+  // Rows can change (a new filter/sort) out from under an existing page
   // number; clamp instead of trusting `page` to still be in range.
   const currentPage = Math.min(page, pageCount - 1)
   const pageRows = useMemo(
-    () => rows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE),
-    [rows, currentPage],
+    () => visibleRows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE),
+    [visibleRows, currentPage],
   )
+
+  function handlePopulationFilterChange(value: string) {
+    setPopulationFilter(value)
+    setPage(0)
+  }
+
+  function toggleSort() {
+    setPercentageSort((prev) => (prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'))
+    setPage(0)
+  }
 
   return (
     <div>
+      <div className="d-flex align-items-center gap-2 mb-2">
+        <label htmlFor="population-filter" className="col-form-label col-form-label-sm">
+          Population
+        </label>
+        <select
+          id="population-filter"
+          className="form-select form-select-sm w-auto"
+          value={populationFilter}
+          onChange={(e) => handlePopulationFilterChange(e.target.value)}
+        >
+          <option value={ALL_POPULATIONS}>All</option>
+          {populations.map((population) => (
+            <option key={population} value={population}>
+              {population}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="table-responsive">
         <table className="table table-striped table-hover table-sm">
           <thead>
@@ -28,7 +79,15 @@ export default function CellFrequencyTable({ rows }: Props) {
               <th scope="col">Population</th>
               <th scope="col">Count</th>
               <th scope="col">Total Count</th>
-              <th scope="col">Percentage</th>
+              <th scope="col">
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm p-0 text-decoration-none"
+                  onClick={toggleSort}
+                >
+                  Percentage{sortIndicator(percentageSort)}
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -47,11 +106,17 @@ export default function CellFrequencyTable({ rows }: Props) {
       <Pagination
         currentPage={currentPage}
         pageCount={pageCount}
-        totalRows={rows.length}
+        totalRows={visibleRows.length}
         onPageChange={setPage}
       />
     </div>
   )
+}
+
+function sortIndicator(direction: SortDirection) {
+  if (direction === 'asc') return ' ▲'
+  if (direction === 'desc') return ' ▼'
+  return ''
 }
 
 interface PaginationProps {
