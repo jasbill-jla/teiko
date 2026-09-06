@@ -21,10 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/response-frequency-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Response Frequency Analysis */
+        get: operations["read_response_frequency_analysis_api_response_frequency_analysis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BoxplotStats */
+        BoxplotStats: {
+            /** Minimum */
+            minimum: number;
+            /** Q1 */
+            q1: number;
+            /** Median */
+            median: number;
+            /** Q3 */
+            q3: number;
+            /** Maximum */
+            maximum: number;
+        };
         /** CellFrequencyRow */
         CellFrequencyRow: {
             /** Sample */
@@ -37,6 +67,47 @@ export interface components {
             total_count: number;
             /** Percentage */
             percentage: number;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** PopulationBoxplot */
+        PopulationBoxplot: {
+            /** Population */
+            population: string;
+            responder: components["schemas"]["BoxplotStats"];
+            non_responder: components["schemas"]["BoxplotStats"];
+        };
+        /** PopulationMedianFrequencies */
+        PopulationMedianFrequencies: {
+            /** Population */
+            population: string;
+            /** Responder Median */
+            responder_median: number;
+            /** Non Responder Median */
+            non_responder_median: number;
+        };
+        /** ResponseFrequencyAnalysis */
+        ResponseFrequencyAnalysis: {
+            /** Medians */
+            medians: components["schemas"]["PopulationMedianFrequencies"][];
+            /** Boxplots */
+            boxplots: components["schemas"]["PopulationBoxplot"][];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -63,6 +134,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CellFrequencyRow"][];
+                };
+            };
+        };
+    };
+    read_response_frequency_analysis_api_response_frequency_analysis_get: {
+        parameters: {
+            query: {
+                condition: string;
+                treatment: string;
+                sample_type: string;
+                median_threshold: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResponseFrequencyAnalysis"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

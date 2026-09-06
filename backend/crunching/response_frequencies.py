@@ -85,7 +85,8 @@ def get_significant_response_populations(
     threshold: float,
 ) -> list[str]:
     """Populations whose responder/non-responder median frequencies differ by
-    at least `threshold` percentage points.
+    more than `threshold` percentage points (strict: a difference exactly
+    equal to `threshold` doesn't qualify).
 
     A population missing either response group (no "yes" or no "no" samples)
     can't be compared and is excluded rather than treated as significant or
@@ -97,5 +98,5 @@ def get_significant_response_populations(
         if "yes" in median_frequencies.get(population, {})
         and "no" in median_frequencies.get(population, {})
         and abs(median_frequencies[population]["yes"] - median_frequencies[population]["no"])
-        >= threshold
+        > threshold
     ]

@@ -77,6 +77,27 @@ At the scale named above (low hundreds of `Project` rows, low thousands of `Samp
 - `backend/api/routes/cell_frequencies.py` — the route handler.
 - `backend/main.py` — the FastAPI app; run with `uvicorn backend.main:app`.
 
+**`GET /api/response-frequency-analysis`** — query params `condition`, `treatment`, `sample_type` (all required strings, e.g. `melanoma`/`miraclib`/`PBMC`), `median_threshold` (required float). Compares responding vs. non-responding subjects with the given condition/treatment, restricted to samples of the given type:
+
+```json
+{
+  "medians": [
+    {"population": "b_cell", "responder_median": 9.43, "non_responder_median": 9.79}
+  ],
+  "boxplots": [
+    {
+      "population": "b_cell",
+      "responder": {"minimum": 2.37, "q1": 7.30, "median": 9.43, "q3": 11.87, "maximum": 25.12},
+      "non_responder": {"minimum": 2.06, "q1": 7.81, "median": 9.79, "q3": 11.82, "maximum": 21.30}
+    }
+  ]
+}
+```
+
+`medians` always lists every population with data for both response groups (5 entries, in a matched real dataset). `boxplots` — one two-sided five-number summary per population, for drawing a pair of box-and-whisker plots — is filtered to only the populations whose `|responder_median - non_responder_median|` is **strictly greater than** `median_threshold`; a threshold no population clears returns `"boxplots": []`, and an unmatched condition/treatment/sample_type returns both lists empty rather than erroring. Built from four crunching functions designed to compose (`backend/crunching/response_frequencies.py`'s `get_response_frequencies`/`get_response_median_frequencies`/`get_significant_response_populations`, plus `backend/crunching/response_frequency_stats.py`'s `compute_boxplot_stats`), so the raw per-sample data is queried once and reused for both the medians and the boxplot stats — see `backend/previsualizing/response_frequency_analysis.py` for how they're assembled into this response shape.
+
+"Significant" here is a plain absolute median difference in percentage points, not a statistical test (e.g. Mann-Whitney U) — a real test was considered and explicitly deferred: the data has repeated samples per subject (e.g. melanoma+miraclib+PBMC is 656 distinct subjects across 1,968 samples), which would need collapsing to one value per subject before a rank-sum test's independence assumption would hold, plus a multiple-comparisons correction across the 5 populations tested at once. Kept simple by the user's explicit choice.
+
 ## Frontend
 
 `frontend/` — Vite + React + TypeScript. v1 is a single page (`src/pages/Dashboard.tsx`) rendering the cell-frequency summary table (`src/components/CellFrequencyTable.tsx`) from `GET /api/cell-frequencies`.
