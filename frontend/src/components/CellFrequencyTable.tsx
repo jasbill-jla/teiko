@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { CellFrequencyRow } from '../api/cellFrequencies'
 
 interface Props {
@@ -7,6 +8,13 @@ interface Props {
 
 const PAGE_SIZE = 100
 const ALL_POPULATIONS = 'all'
+
+// The same custom properties Bootstrap's own .table-striped sets via
+// `tr:nth-of-type(odd) > *` -- applied manually per-row instead (see below).
+const STRIPE_STYLE = {
+  '--bs-table-color-type': 'var(--bs-table-striped-color)',
+  '--bs-table-bg-type': 'var(--bs-table-striped-bg)',
+} as CSSProperties
 
 type SortDirection = 'asc' | 'desc' | null
 
@@ -102,7 +110,7 @@ export default function CellFrequencyTable({ rows }: Props) {
         </select>
       </div>
       <div className="table-responsive">
-        <table className="table table-striped table-hover table-sm">
+        <table className="table table-hover table-sm">
           <thead>
             <tr>
               <th scope="col">Sample</th>
@@ -125,12 +133,20 @@ export default function CellFrequencyTable({ rows }: Props) {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row) => {
+            {pageRows.map((row, index) => {
               const key = `${row.sample}-${row.population}`
               const isExpanded = expandedRows.has(key)
+              // Striped manually, keyed to this row's position in pageRows
+              // rather than Bootstrap's usual :nth-of-type(odd) -- an
+              // expanded row inserts an extra <tr> right after it, which
+              // would otherwise shift every following row's stripe by one
+              // and change colors on expand/collapse. Applying the exact
+              // same style to the detail row also guarantees it's never a
+              // different color than the row it belongs to.
+              const stripeStyle = index % 2 === 1 ? STRIPE_STYLE : undefined
               return (
                 <Fragment key={key}>
-                  <tr>
+                  <tr style={stripeStyle}>
                     <td>
                       <button
                         type="button"
@@ -151,7 +167,7 @@ export default function CellFrequencyTable({ rows }: Props) {
                     <td>{row.percentage.toFixed(2)}%</td>
                   </tr>
                   {isExpanded && (
-                    <tr className="d-sm-none">
+                    <tr className="d-sm-none" style={stripeStyle}>
                       <td colSpan={5} className="small">
                         <div className="ps-3">Count: {row.count.toLocaleString()}</div>
                         <div className="ps-3">Total Count: {row.total_count.toLocaleString()}</div>
