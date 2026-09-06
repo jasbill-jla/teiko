@@ -1,5 +1,15 @@
 # teiko
 
+## Running
+
+Three Makefile targets, run in order, from the repo root:
+
+- `make setup` — creates a Python venv (`.venv`) and installs `backend/requirements.txt`; installs the frontend's npm packages.
+- `make pipeline` — runs the entire data pipeline end-to-end: applies the Alembic migrations and loads `data/cell-count.csv` into `teiko.db`. Safe to re-run.
+- `make dashboard` — builds the frontend (`frontend/dist`) and starts a single server (`uvicorn backend.main:app`) on `http://0.0.0.0:8000` that serves both the API and the built dashboard from one port. Runs in the foreground; in a Codespace, forward/open port 8000 to view it.
+
+In GitHub Codespaces: open the repo in a Codespace, then run the three commands above in the terminal. Codespaces auto-forwards port 8000 once `make dashboard` is running.
+
 ## Database Schema
 
 Implemented as three tables: `Project`, `Subject`, `Sample` — see `backend/models/tables.py` for the SQLAlchemy Core definitions.
@@ -73,7 +83,7 @@ At the scale named above (low hundreds of `Project` rows, low thousands of `Samp
 
 - **Styling:** plain Bootstrap CSS (`npm install bootstrap`, stylesheet imported once in `main.tsx`), not `react-bootstrap`. v1 has no JS-driven Bootstrap components (dropdowns, modals, tabs) — just `.table`/`.container` classes on regular JSX — and mixing Bootstrap's own DOM-manipulating JS with React's virtual DOM is a real source of bugs, so `react-bootstrap` is worth adding only once an interactive component actually needs it.
 - **Types:** `src/types/api.ts` is generated, not hand-written — `python -m backend.export_openapi` writes the backend's OpenAPI schema to `frontend/openapi.json` (gitignored, regenerate on demand), then `npm run gen:types` (`openapi-typescript`) turns it into TS types. Keeps `CellFrequencyRow` in sync with the backend without hand-duplicating it. Required pinning the frontend's TypeScript to `5.9.3`: `openapi-typescript` doesn't yet support TypeScript 6.x (what Vite scaffolds by default), and 5.x is fully capable for this project.
-- **Dev vs. serving:** `npm run dev` runs Vite's dev server, which proxies `/api/*` to `http://localhost:8000` (`vite.config.ts`) — so the browser only ever talks to one origin and no CORS setup is needed. For `make dashboard` (Makefile not built yet), the plan is: `npm run build` produces `frontend/dist`, and `backend/main.py` mounts it as static files alongside the API routes (registered first, so `/api/*` always resolves there) — one process, one port, matching the spec's "start the local server" (singular). That mount is skipped if `frontend/dist` doesn't exist, so backend-only contexts like the test suite aren't affected by it.
+- **Dev vs. serving:** `npm run dev` runs Vite's dev server, which proxies `/api/*` to `http://localhost:8000` (`vite.config.ts`) — so the browser only ever talks to one origin and no CORS setup is needed. `make dashboard` runs `npm run build` to produce `frontend/dist`, and `backend/main.py` mounts it as static files alongside the API routes (registered first, so `/api/*` always resolves there) — one process, one port, matching the spec's "start the local server" (singular). That mount is skipped if `frontend/dist` doesn't exist, so backend-only contexts like the test suite aren't affected by it.
 
 **Known limitation, not yet addressed:** the real dataset produces 52,500 rows (10,500 samples × 5 populations) with no pagination — verified in a real browser that it does render correctly, but it takes several seconds and produces a very large DOM (~4.8MB of HTML). Fine for v1's scope, but worth paginating or virtualizing before this is a good user experience.
 
