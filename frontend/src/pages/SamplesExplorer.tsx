@@ -3,6 +3,7 @@ import type { FormEvent, MouseEvent } from 'react'
 import {
   fetchSampleFieldValues,
   fetchSamples,
+  type SampleRecord,
   type SamplesQuery,
   type SamplesResult,
 } from '../api/samples'
@@ -11,42 +12,26 @@ import { downloadCsv, toCsv } from '../csv'
 
 type Grouping = 'project' | 'subject' | ''
 type GroupCountField = 'sex' | 'response'
+type FilterColumn = 'condition' | 'treatment' | 'sample_type' | 'time_from_treatment'
 
 const FILTER_FIELDS = ['condition', 'treatment', 'sample_type', 'time_from_treatment'] as const
 type FilterFieldValues = Record<(typeof FILTER_FIELDS)[number], string[]>
 
-const SAMPLE_COLUMNS = [
-  'project_source_id',
-  'condition',
-  'treatment',
-  'subject_source_id',
-  'age',
-  'sex',
-  'response',
-  'sample_type',
-  'time_from_treatment',
-  'b_cell',
-  'cd8_t_cell',
-  'cd4_t_cell',
-  'nk_cell',
-  'monocyte',
-] as const
-
-const CSV_HEADERS = [
-  'Project',
-  'Condition',
-  'Treatment',
-  'Subject',
-  'Age',
-  'Sex',
-  'Response',
-  'Sample Type',
-  'Time From Treatment',
-  'B Cell',
-  'CD8 T Cell',
-  'CD4 T Cell',
-  'NK Cell',
-  'Monocyte',
+const SAMPLE_COLUMNS: { key: keyof SampleRecord; header: string }[] = [
+  { key: 'project_source_id', header: 'Project' },
+  { key: 'condition', header: 'Condition' },
+  { key: 'treatment', header: 'Treatment' },
+  { key: 'subject_source_id', header: 'Subject' },
+  { key: 'age', header: 'Age' },
+  { key: 'sex', header: 'Sex' },
+  { key: 'response', header: 'Response' },
+  { key: 'sample_type', header: 'Sample Type' },
+  { key: 'time_from_treatment', header: 'Time From Treatment' },
+  { key: 'b_cell', header: 'B Cell' },
+  { key: 'cd8_t_cell', header: 'CD8 T Cell' },
+  { key: 'cd4_t_cell', header: 'CD4 T Cell' },
+  { key: 'nk_cell', header: 'NK Cell' },
+  { key: 'monocyte', header: 'Monocyte' },
 ]
 
 export default function SamplesExplorer() {
@@ -62,6 +47,7 @@ export default function SamplesExplorer() {
   const [appliedGroupCountField, setAppliedGroupCountField] = useState<GroupCountField | null>(
     null,
   )
+  const [appliedFilterColumns, setAppliedFilterColumns] = useState<(keyof SampleRecord)[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -86,6 +72,7 @@ export default function SamplesExplorer() {
     query: SamplesQuery,
     queryGrouping: Grouping,
     queryGroupCountField: GroupCountField | '',
+    queryFilterColumns: (keyof SampleRecord)[],
   ) {
     setLoading(true)
     setError(null)
@@ -96,6 +83,7 @@ export default function SamplesExplorer() {
         setAppliedGroupCountField(
           queryGrouping === 'subject' ? (queryGroupCountField as GroupCountField) : null,
         )
+        setAppliedFilterColumns(queryFilterColumns)
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false))
@@ -109,6 +97,13 @@ export default function SamplesExplorer() {
       return
     }
 
+    const filterColumns: FilterColumn[] = [
+      ...(condition ? (['condition'] as const) : []),
+      ...(treatment ? (['treatment'] as const) : []),
+      ...(sampleType ? (['sample_type'] as const) : []),
+      ...(timeFromTreatment !== '' ? (['time_from_treatment'] as const) : []),
+    ]
+
     runSearch(
       {
         grouping: grouping || undefined,
@@ -120,6 +115,7 @@ export default function SamplesExplorer() {
       },
       grouping,
       groupCountField,
+      filterColumns,
     )
   }
 
@@ -131,14 +127,15 @@ export default function SamplesExplorer() {
     setTimeFromTreatment('')
     setGrouping('')
     setGroupCountField('')
-    runSearch({}, '', '')
+    runSearch({}, '', '', [])
   }
 
   function handleExport() {
     if (!result) return
+    const columns = SAMPLE_COLUMNS.filter((column) => !appliedFilterColumns.includes(column.key))
     const csv = toCsv(
-      CSV_HEADERS,
-      result.samples.map((sample) => SAMPLE_COLUMNS.map((key) => sample[key])),
+      columns.map((column) => column.header),
+      result.samples.map((sample) => columns.map((column) => sample[column.key])),
     )
     downloadCsv('samples.csv', csv)
   }
@@ -283,6 +280,7 @@ export default function SamplesExplorer() {
             counts={result.counts}
             grouping={appliedGrouping}
             groupCountField={appliedGroupCountField}
+            hiddenColumns={appliedFilterColumns}
           />
         </>
       )}

@@ -6,6 +6,7 @@ interface Props {
   counts: GroupCount[]
   grouping: 'project' | 'subject' | ''
   groupCountField: 'sex' | 'response' | null
+  hiddenColumns: (keyof SampleRecord)[]
 }
 
 const COLUMNS: { key: keyof SampleRecord; label: string }[] = [
@@ -58,11 +59,21 @@ function buildBlocks(samples: SampleRecord[], keyFn: (sample: SampleRecord) => s
   return blocks
 }
 
-export default function SamplesResultTable({ samples, counts, grouping, groupCountField }: Props) {
+export default function SamplesResultTable({
+  samples,
+  counts,
+  grouping,
+  groupCountField,
+  hiddenColumns,
+}: Props) {
   // Collapsed by default -- lets every group's header (and its count) be
   // seen together without scrolling past every sample row first.
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
+  const visibleColumns = useMemo(
+    () => COLUMNS.filter((column) => !hiddenColumns.includes(column.key)),
+    [hiddenColumns],
+  )
   const blocks = useMemo(
     () => buildBlocks(samples, (sample) => groupKeyFor(sample, grouping, groupCountField)),
     [samples, grouping, groupCountField],
@@ -97,7 +108,7 @@ export default function SamplesResultTable({ samples, counts, grouping, groupCou
       <table className="table table-striped table-hover table-sm">
         <thead>
           <tr>
-            {COLUMNS.map((column) => (
+            {visibleColumns.map((column) => (
               <th key={column.key} scope="col">
                 {column.label}
               </th>
@@ -108,7 +119,7 @@ export default function SamplesResultTable({ samples, counts, grouping, groupCou
           {grouping === ''
             ? samples.map((sample) => (
                 <tr key={`sample-${rowIndex++}`}>
-                  {COLUMNS.map((column) => (
+                  {visibleColumns.map((column) => (
                     <td key={column.key}>{sample[column.key] ?? '—'}</td>
                   ))}
                 </tr>
@@ -118,7 +129,7 @@ export default function SamplesResultTable({ samples, counts, grouping, groupCou
                 return (
                   <Fragment key={block.key}>
                     <tr className="table-secondary">
-                      <td colSpan={COLUMNS.length}>
+                      <td colSpan={visibleColumns.length}>
                         <button
                           type="button"
                           className="btn btn-link btn-sm p-0 text-decoration-none fw-bold"
@@ -132,7 +143,7 @@ export default function SamplesResultTable({ samples, counts, grouping, groupCou
                     {isExpanded &&
                       block.samples.map((sample) => (
                         <tr key={`sample-${rowIndex++}`}>
-                          {COLUMNS.map((column) => (
+                          {visibleColumns.map((column) => (
                             <td key={column.key}>{sample[column.key] ?? '—'}</td>
                           ))}
                         </tr>
