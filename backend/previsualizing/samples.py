@@ -101,6 +101,15 @@ def get_samples_result(
 
 
 def get_field_values(conn: Connection, *, field: FilterableField) -> list[str]:
-    """Distinct values for one samples filter, sorted and stringified for display."""
+    """Distinct values for one samples filter, sorted and stringified for display.
+
+    A `None` value (no condition/treatment recorded) sorts first and is
+    stringified as "" -- the samples endpoint treats an explicit empty
+    filter value as "no value recorded" (IS NULL), distinct from omitting
+    the filter entirely (which matches everything).
+    """
     values = _get_field_values(conn, field=field)
-    return [str(value) for value in sorted(values)]
+    return [
+        "" if value is None else str(value)
+        for value in sorted(values, key=lambda v: (v is not None, v))
+    ]

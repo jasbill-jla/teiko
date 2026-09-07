@@ -12,8 +12,11 @@ export type SampleFilterField =
 export async function fetchSamples(query: SamplesQuery): Promise<SamplesResult> {
   const params = new URLSearchParams()
   if (query.grouping) params.set('grouping', query.grouping)
-  if (query.condition) params.set('condition', query.condition)
-  if (query.treatment) params.set('treatment', query.treatment)
+  // Condition/treatment: undefined omits the filter entirely (match
+  // everything); an explicit "" filters for no value recorded (IS NULL) --
+  // see previsualizing.samples.get_field_values on the backend.
+  if (query.condition != null) params.set('condition', query.condition)
+  if (query.treatment != null) params.set('treatment', query.treatment)
   if (query.sample_type) params.set('sample_type', query.sample_type)
   if (query.time_from_treatment !== null && query.time_from_treatment !== undefined) {
     params.set('time_from_treatment', String(query.time_from_treatment))

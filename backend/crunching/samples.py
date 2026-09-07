@@ -50,11 +50,21 @@ def get_samples(
     sample_type: str | None,
     time_from_treatment: int | None,
 ) -> list[SampleDetail]:
-    """Samples matching every given filter; a `None` filter doesn't restrict."""
+    """Samples matching every given filter; a `None` filter doesn't restrict.
+
+    Condition and treatment are nullable (a healthy/untreated subject has no
+    value recorded) -- an empty-string filter for either matches those rows
+    (IS NULL) rather than a literal empty value, which never occurs in the
+    data.
+    """
     filters = []
-    if condition is not None:
+    if condition == "":
+        filters.append(subject.c.condition_name.is_(None))
+    elif condition is not None:
         filters.append(subject.c.condition_name == condition)
-    if treatment is not None:
+    if treatment == "":
+        filters.append(subject.c.treatment_name.is_(None))
+    elif treatment is not None:
         filters.append(subject.c.treatment_name == treatment)
     if sample_type is not None:
         filters.append(project.c.sample_type == sample_type)
@@ -103,13 +113,15 @@ def get_samples(
     ]
 
 
-def get_field_values(conn: Connection, *, field: FilterableField) -> list[str | int]:
-    """Distinct non-null values recorded for one of the samples filters."""
+def get_field_values(conn: Connection, *, field: FilterableField) -> list[str | int | None]:
+    """Distinct values recorded for one of the samples filters.
+
+    Includes `None` when some row has no value for the field (e.g. a
+    healthy/untreated subject's condition/treatment) -- sample_type and
+    time_from_treatment are never null, so this only surfaces for those two.
+    """
     column = _COLUMN_BY_FIELD[field]
     rows = conn.execute(
-        select(column)
-        .select_from(sample.join(subject).join(project))
-        .where(column.is_not(None))
-        .distinct()
+        select(column).select_from(sample.join(subject).join(project)).distinct()
     ).all()
     return [row[0] for row in rows]
