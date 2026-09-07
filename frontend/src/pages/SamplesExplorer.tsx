@@ -127,7 +127,11 @@ export default function SamplesExplorer() {
     setTimeFromTreatment('')
     setGrouping('')
     setGroupCountField('')
-    runSearch({}, '', '', [])
+    setResult(null)
+    setAppliedGrouping('')
+    setAppliedGroupCountField(null)
+    setAppliedFilterColumns([])
+    setError(null)
   }
 
   function handleExport() {
