@@ -284,7 +284,7 @@ export interface operations {
     read_samples_field_values_api_samples_field_values_get: {
         parameters: {
             query: {
-                field: "condition" | "treatment" | "time_from_treatment";
+                field: "condition" | "treatment" | "sample_type" | "time_from_treatment";
             };
             header?: never;
             path?: never;

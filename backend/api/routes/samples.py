@@ -38,7 +38,7 @@ def read_samples(
 
 @router.get("/samples/field-values", response_model=list[str])
 def read_samples_field_values(
-    field: Literal["condition", "treatment", "time_from_treatment"],
+    field: Literal["condition", "treatment", "sample_type", "time_from_treatment"],
     conn: Connection = Depends(get_connection),
 ) -> list[str]:
     return get_field_values(conn, field=field)

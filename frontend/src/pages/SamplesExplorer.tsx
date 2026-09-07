@@ -12,7 +12,7 @@ import { downloadCsv, toCsv } from '../csv'
 type Grouping = 'project' | 'subject' | ''
 type GroupCountField = 'sex' | 'response'
 
-const FILTER_FIELDS = ['condition', 'treatment', 'time_from_treatment'] as const
+const FILTER_FIELDS = ['condition', 'treatment', 'sample_type', 'time_from_treatment'] as const
 type FilterFieldValues = Record<(typeof FILTER_FIELDS)[number], string[]>
 
 const SAMPLE_COLUMNS = [
@@ -68,6 +68,7 @@ export default function SamplesExplorer() {
   const [fieldValues, setFieldValues] = useState<FilterFieldValues>({
     condition: [],
     treatment: [],
+    sample_type: [],
     time_from_treatment: [],
   })
 
@@ -164,13 +165,19 @@ export default function SamplesExplorer() {
           <label htmlFor="se-sample-type" className="form-label mb-0">
             Sample Type
           </label>
-          <input
+          <select
             id="se-sample-type"
-            className="form-control form-control-sm"
+            className="form-select form-select-sm"
             value={sampleType}
             onChange={(e) => setSampleType(e.target.value)}
-            placeholder="(any)"
-          />
+          >
+            <option value="">(all)</option>
+            {fieldValues.sample_type.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="col-12">
           <label htmlFor="se-time" className="form-label mb-0">
