@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 import {
   fetchSampleFieldValues,
   fetchSamples,
@@ -82,6 +82,25 @@ export default function SamplesExplorer() {
       .catch((err: Error) => setError(err.message))
   }, [])
 
+  function runSearch(
+    query: SamplesQuery,
+    queryGrouping: Grouping,
+    queryGroupCountField: GroupCountField | '',
+  ) {
+    setLoading(true)
+    setError(null)
+    fetchSamples(query)
+      .then((data) => {
+        setResult(data)
+        setAppliedGrouping(queryGrouping)
+        setAppliedGroupCountField(
+          queryGrouping === 'subject' ? (queryGroupCountField as GroupCountField) : null,
+        )
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false))
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
 
@@ -90,25 +109,29 @@ export default function SamplesExplorer() {
       return
     }
 
-    const query: SamplesQuery = {
-      grouping: grouping || undefined,
-      condition: condition || undefined,
-      treatment: treatment || undefined,
-      sample_type: sampleType || undefined,
-      time_from_treatment: timeFromTreatment === '' ? undefined : Number(timeFromTreatment),
-      group_count_field: grouping === 'subject' ? groupCountField || undefined : undefined,
-    }
+    runSearch(
+      {
+        grouping: grouping || undefined,
+        condition: condition || undefined,
+        treatment: treatment || undefined,
+        sample_type: sampleType || undefined,
+        time_from_treatment: timeFromTreatment === '' ? undefined : Number(timeFromTreatment),
+        group_count_field: grouping === 'subject' ? groupCountField || undefined : undefined,
+      },
+      grouping,
+      groupCountField,
+    )
+  }
 
-    setLoading(true)
-    setError(null)
-    fetchSamples(query)
-      .then((data) => {
-        setResult(data)
-        setAppliedGrouping(grouping)
-        setAppliedGroupCountField(grouping === 'subject' ? (groupCountField as GroupCountField) : null)
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false))
+  function handleReset(e: MouseEvent) {
+    e.preventDefault()
+    setCondition('')
+    setTreatment('')
+    setSampleType('')
+    setTimeFromTreatment('')
+    setGrouping('')
+    setGroupCountField('')
+    runSearch({}, '', '')
   }
 
   function handleExport() {
@@ -235,6 +258,12 @@ export default function SamplesExplorer() {
           </button>
         </div>
       </form>
+
+      <div className="mb-4">
+        <a href="#" className="small" onClick={handleReset}>
+          Reset
+        </a>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
