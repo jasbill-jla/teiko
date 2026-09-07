@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import Dashboard from './pages/Dashboard'
-import ResponseAnalysis from './pages/ResponseAnalysis'
 import SamplesExplorer from './pages/SamplesExplorer'
+
+// Lazy-loaded: pulls in plotly.js (~4 MB minified on its own), so keep it
+// out of the main bundle and only fetch it when this page is visited.
+const ResponseAnalysis = lazy(() => import('./pages/ResponseAnalysis'))
 
 type Page = 'cell-frequencies' | 'response-analysis' | 'samples-explorer'
 
@@ -48,7 +51,11 @@ export default function App() {
         </ul>
       </nav>
       {page === 'cell-frequencies' && <Dashboard />}
-      {page === 'response-analysis' && <ResponseAnalysis />}
+      {page === 'response-analysis' && (
+        <Suspense fallback={<div className="p-3">Loading…</div>}>
+          <ResponseAnalysis />
+        </Suspense>
+      )}
       {page === 'samples-explorer' && <SamplesExplorer />}
     </div>
   )
