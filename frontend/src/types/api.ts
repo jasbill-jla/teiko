@@ -230,8 +230,8 @@ export interface operations {
     };
     read_samples_api_samples_get: {
         parameters: {
-            query: {
-                grouping: "project" | "subject";
+            query?: {
+                grouping?: ("project" | "subject") | null;
                 condition?: string | null;
                 treatment?: string | null;
                 sample_type?: string | null;

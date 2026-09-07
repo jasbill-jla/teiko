@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/samples", response_model=SamplesResult)
 def read_samples(
-    grouping: Literal["project", "subject"],
+    grouping: Literal["project", "subject"] | None = None,
     condition: str | None = None,
     treatment: str | None = None,
     sample_type: str | None = None,

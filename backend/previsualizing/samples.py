@@ -4,7 +4,8 @@ The count unit follows the grouping, not the field within it: grouping by
 project counts sample rows per project; grouping by subject (whether the
 group_count_field is "sex" or "response") counts distinct subjects, not
 samples, since a subject's multiple samples shouldn't inflate a subject-level
-count.
+count. Grouping is optional -- when omitted, samples are still sorted (by
+project then subject) but no counts are computed.
 """
 
 from typing import Literal
@@ -14,7 +15,7 @@ from sqlalchemy import Connection
 from backend.crunching.samples import SampleDetail, get_samples
 from backend.schemas.samples import GroupCount, SampleRecord, SamplesResult
 
-Grouping = Literal["project", "subject"]
+Grouping = Literal["project", "subject"] | None
 GroupCountField = Literal["sex", "response"]
 
 # Sentinel label for a subject with no recorded response (e.g. untreated or
@@ -76,7 +77,10 @@ def get_samples_result(
         time_from_treatment=time_from_treatment,
     )
 
-    if grouping == "project":
+    if grouping is None:
+        details.sort(key=lambda d: (d.project_source_id, d.subject_source_id))
+        counts = []
+    elif grouping == "project":
         details.sort(key=lambda d: (d.project_source_id, d.subject_source_id))
         counts = _sample_counts([d.project_source_id for d in details])
     elif group_count_field == "sex":

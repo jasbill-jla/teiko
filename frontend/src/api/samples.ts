@@ -3,11 +3,13 @@ import type { components, operations } from '../types/api'
 export type SampleRecord = components['schemas']['SampleRecord']
 export type GroupCount = components['schemas']['GroupCount']
 export type SamplesResult = components['schemas']['SamplesResult']
-export type SamplesQuery = operations['read_samples_api_samples_get']['parameters']['query']
+export type SamplesQuery = NonNullable<
+  operations['read_samples_api_samples_get']['parameters']['query']
+>
 
 export async function fetchSamples(query: SamplesQuery): Promise<SamplesResult> {
   const params = new URLSearchParams()
-  params.set('grouping', query.grouping)
+  if (query.grouping) params.set('grouping', query.grouping)
   if (query.condition) params.set('condition', query.condition)
   if (query.treatment) params.set('treatment', query.treatment)
   if (query.sample_type) params.set('sample_type', query.sample_type)

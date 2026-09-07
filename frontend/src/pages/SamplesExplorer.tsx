@@ -4,7 +4,7 @@ import { fetchSamples, type SamplesQuery, type SamplesResult } from '../api/samp
 import SamplesResultTable from '../components/SamplesResultTable'
 import { downloadCsv, toCsv } from '../csv'
 
-type Grouping = 'project' | 'subject'
+type Grouping = 'project' | 'subject' | ''
 type GroupCountField = 'sex' | 'response'
 
 const SAMPLE_COLUMNS = [
@@ -46,11 +46,11 @@ export default function SamplesExplorer() {
   const [treatment, setTreatment] = useState('')
   const [sampleType, setSampleType] = useState('')
   const [timeFromTreatment, setTimeFromTreatment] = useState('')
-  const [grouping, setGrouping] = useState<Grouping>('project')
+  const [grouping, setGrouping] = useState<Grouping>('')
   const [groupCountField, setGroupCountField] = useState<GroupCountField | ''>('')
 
   const [result, setResult] = useState<SamplesResult | null>(null)
-  const [appliedGrouping, setAppliedGrouping] = useState<Grouping>('project')
+  const [appliedGrouping, setAppliedGrouping] = useState<Grouping>('')
   const [appliedGroupCountField, setAppliedGroupCountField] = useState<GroupCountField | null>(
     null,
   )
@@ -66,7 +66,7 @@ export default function SamplesExplorer() {
     }
 
     const query: SamplesQuery = {
-      grouping,
+      grouping: grouping || undefined,
       condition: condition || undefined,
       treatment: treatment || undefined,
       sample_type: sampleType || undefined,
@@ -162,6 +162,7 @@ export default function SamplesExplorer() {
             value={grouping}
             onChange={(e) => setGrouping(e.target.value as Grouping)}
           >
+            <option value="">(none)</option>
             <option value="project">Project</option>
             <option value="subject">Subject</option>
           </select>

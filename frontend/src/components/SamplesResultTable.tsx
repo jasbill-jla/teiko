@@ -4,7 +4,7 @@ import type { GroupCount, SampleRecord } from '../api/samples'
 interface Props {
   samples: SampleRecord[]
   counts: GroupCount[]
-  grouping: 'project' | 'subject'
+  grouping: 'project' | 'subject' | ''
   groupCountField: 'sex' | 'response' | null
 }
 
@@ -32,9 +32,10 @@ interface Block {
 
 function groupKeyFor(
   sample: SampleRecord,
-  grouping: 'project' | 'subject',
+  grouping: 'project' | 'subject' | '',
   groupCountField: 'sex' | 'response' | null,
 ): string {
+  if (grouping === '') return ''
   if (grouping === 'project') return sample.project_source_id
   if (groupCountField === 'sex') return sample.sex
   return sample.response ?? 'none'
@@ -104,33 +105,41 @@ export default function SamplesResultTable({ samples, counts, grouping, groupCou
           </tr>
         </thead>
         <tbody>
-          {blocks.map((block) => {
-            const isExpanded = expanded.has(block.key)
-            return (
-              <Fragment key={block.key}>
-                <tr className="table-secondary">
-                  <td colSpan={COLUMNS.length}>
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm p-0 text-decoration-none fw-bold"
-                      onClick={() => toggle(block.key)}
-                      aria-expanded={isExpanded}
-                    >
-                      {isExpanded ? '▾' : '▸'} {headerLabel(block)}
-                    </button>
-                  </td>
-                </tr>
-                {isExpanded &&
-                  block.samples.map((sample) => (
-                    <tr key={`sample-${rowIndex++}`}>
-                      {COLUMNS.map((column) => (
-                        <td key={column.key}>{sample[column.key] ?? '—'}</td>
-                      ))}
-                    </tr>
+          {grouping === ''
+            ? samples.map((sample) => (
+                <tr key={`sample-${rowIndex++}`}>
+                  {COLUMNS.map((column) => (
+                    <td key={column.key}>{sample[column.key] ?? '—'}</td>
                   ))}
-              </Fragment>
-            )
-          })}
+                </tr>
+              ))
+            : blocks.map((block) => {
+                const isExpanded = expanded.has(block.key)
+                return (
+                  <Fragment key={block.key}>
+                    <tr className="table-secondary">
+                      <td colSpan={COLUMNS.length}>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 text-decoration-none fw-bold"
+                          onClick={() => toggle(block.key)}
+                          aria-expanded={isExpanded}
+                        >
+                          {isExpanded ? '▾' : '▸'} {headerLabel(block)}
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded &&
+                      block.samples.map((sample) => (
+                        <tr key={`sample-${rowIndex++}`}>
+                          {COLUMNS.map((column) => (
+                            <td key={column.key}>{sample[column.key] ?? '—'}</td>
+                          ))}
+                        </tr>
+                      ))}
+                  </Fragment>
+                )
+              })}
         </tbody>
       </table>
     </div>
