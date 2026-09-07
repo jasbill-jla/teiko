@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { fetchSamples, type SamplesQuery, type SamplesResult } from '../api/samples'
+import {
+  fetchSampleFieldValues,
+  fetchSamples,
+  type SamplesQuery,
+  type SamplesResult,
+} from '../api/samples'
 import SamplesResultTable from '../components/SamplesResultTable'
 import { downloadCsv, toCsv } from '../csv'
 
 type Grouping = 'project' | 'subject' | ''
 type GroupCountField = 'sex' | 'response'
+
+const FILTER_FIELDS = ['condition', 'treatment', 'time_from_treatment'] as const
+type FilterFieldValues = Record<(typeof FILTER_FIELDS)[number], string[]>
 
 const SAMPLE_COLUMNS = [
   'project_source_id',
@@ -57,6 +65,22 @@ export default function SamplesExplorer() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const [fieldValues, setFieldValues] = useState<FilterFieldValues>({
+    condition: [],
+    treatment: [],
+    time_from_treatment: [],
+  })
+
+  useEffect(() => {
+    Promise.all(FILTER_FIELDS.map((field) => fetchSampleFieldValues(field)))
+      .then((results) => {
+        setFieldValues(
+          Object.fromEntries(FILTER_FIELDS.map((field, i) => [field, results[i]])) as FilterFieldValues,
+        )
+      })
+      .catch((err: Error) => setError(err.message))
+  }, [])
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
 
@@ -104,25 +128,37 @@ export default function SamplesExplorer() {
           <label htmlFor="se-condition" className="form-label mb-0">
             Condition
           </label>
-          <input
+          <select
             id="se-condition"
-            className="form-control form-control-sm"
+            className="form-select form-select-sm"
             value={condition}
             onChange={(e) => setCondition(e.target.value)}
-            placeholder="(any)"
-          />
+          >
+            <option value="">(all)</option>
+            {fieldValues.condition.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="col-12">
           <label htmlFor="se-treatment" className="form-label mb-0">
             Treatment
           </label>
-          <input
+          <select
             id="se-treatment"
-            className="form-control form-control-sm"
+            className="form-select form-select-sm"
             value={treatment}
             onChange={(e) => setTreatment(e.target.value)}
-            placeholder="(any)"
-          />
+          >
+            <option value="">(all)</option>
+            {fieldValues.treatment.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="col-12">
           <label htmlFor="se-sample-type" className="form-label mb-0">
@@ -146,10 +182,12 @@ export default function SamplesExplorer() {
             value={timeFromTreatment}
             onChange={(e) => setTimeFromTreatment(e.target.value)}
           >
-            <option value="">(any)</option>
-            <option value="0">0 days</option>
-            <option value="7">7 days</option>
-            <option value="14">14 days</option>
+            <option value="">(all)</option>
+            {fieldValues.time_from_treatment.map((value) => (
+              <option key={value} value={value}>
+                {value} days
+              </option>
+            ))}
           </select>
         </div>
         <div className="col-12">

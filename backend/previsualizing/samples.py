@@ -6,13 +6,17 @@ group_count_field is "sex" or "response") counts distinct subjects, not
 samples, since a subject's multiple samples shouldn't inflate a subject-level
 count. Grouping is optional -- when omitted, samples are still sorted (by
 project then subject) but no counts are computed.
+
+Also sorts crunching.samples.get_field_values's output for the filter
+dropdowns on the samples-browsing page.
 """
 
 from typing import Literal
 
 from sqlalchemy import Connection
 
-from backend.crunching.samples import SampleDetail, get_samples
+from backend.crunching.samples import FilterableField, SampleDetail, get_samples
+from backend.crunching.samples import get_field_values as _get_field_values
 from backend.schemas.samples import GroupCount, SampleRecord, SamplesResult
 
 Grouping = Literal["project", "subject"] | None
@@ -94,3 +98,9 @@ def get_samples_result(
         samples=[_to_schema(detail) for detail in details],
         counts=counts,
     )
+
+
+def get_field_values(conn: Connection, *, field: FilterableField) -> list[str]:
+    """Distinct values for one samples filter, sorted and stringified for display."""
+    values = _get_field_values(conn, field=field)
+    return [str(value) for value in sorted(values)]

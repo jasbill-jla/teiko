@@ -6,6 +6,8 @@ export type SamplesResult = components['schemas']['SamplesResult']
 export type SamplesQuery = NonNullable<
   operations['read_samples_api_samples_get']['parameters']['query']
 >
+export type SampleFilterField =
+  operations['read_samples_field_values_api_samples_field_values_get']['parameters']['query']['field']
 
 export async function fetchSamples(query: SamplesQuery): Promise<SamplesResult> {
   const params = new URLSearchParams()
@@ -23,6 +25,16 @@ export async function fetchSamples(query: SamplesQuery): Promise<SamplesResult> 
     const body = await response.json().catch(() => null)
     const detail = body && typeof body.detail === 'string' ? body.detail : response.statusText
     throw new Error(`GET /api/samples failed: ${response.status} ${detail}`)
+  }
+  return response.json()
+}
+
+export async function fetchSampleFieldValues(field: SampleFilterField): Promise<string[]> {
+  const response = await fetch(`/api/samples/field-values?${new URLSearchParams({ field })}`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    const detail = body && typeof body.detail === 'string' ? body.detail : response.statusText
+    throw new Error(`GET /api/samples/field-values failed: ${response.status} ${detail}`)
   }
   return response.json()
 }

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection
 
 from backend.core.db import get_connection
-from backend.previsualizing.samples import get_samples_result
+from backend.previsualizing.samples import get_field_values, get_samples_result
 from backend.schemas.samples import SamplesResult
 
 router = APIRouter()
@@ -34,3 +34,11 @@ def read_samples(
         grouping=grouping,
         group_count_field=group_count_field,
     )
+
+
+@router.get("/samples/field-values", response_model=list[str])
+def read_samples_field_values(
+    field: Literal["condition", "treatment", "time_from_treatment"],
+    conn: Connection = Depends(get_connection),
+) -> list[str]:
+    return get_field_values(conn, field=field)

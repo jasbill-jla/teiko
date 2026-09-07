@@ -8,10 +8,19 @@ previsualizing.samples.
 """
 
 from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy import Connection, select
 
 from backend.models.tables import project, sample, subject
+
+FilterableField = Literal["condition", "treatment", "time_from_treatment"]
+
+_COLUMN_BY_FIELD = {
+    "condition": subject.c.condition_name,
+    "treatment": subject.c.treatment_name,
+    "time_from_treatment": sample.c.time_from_treatment,
+}
 
 
 @dataclass(frozen=True)
@@ -91,3 +100,12 @@ def get_samples(
         )
         for row in rows
     ]
+
+
+def get_field_values(conn: Connection, *, field: FilterableField) -> list[str | int]:
+    """Distinct non-null values recorded for one of the samples filters."""
+    column = _COLUMN_BY_FIELD[field]
+    rows = conn.execute(
+        select(column).select_from(sample.join(subject)).where(column.is_not(None)).distinct()
+    ).all()
+    return [row[0] for row in rows]
